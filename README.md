@@ -182,13 +182,20 @@ server-side editing.
 
 ## Seed library notes
 
-- L-base only for v1: **19 poses, 20 transitions, 5 flows**
-  (Ninja Star, Four Step, Beginner Flow + Barrel Roll and Catherine's Wheel
-  with **sequence unverified** — their steps are deliberately left empty
-  rather than guessed wrong; rebuild them in the Flow Builder).
+- L-base only for v1: **19 poses, 27 transitions, 11 flows**
+  (Ninja Star, Four Step, Beginner Flow, Cork Screw, Trap Door,
+  Reverse Tumbleweed (Beginner), Final Washing Machine + Barrel Roll,
+  Catherine's Wheel, Star Tumbler and Mystery Box with **sequence
+  unverified** — their steps are deliberately left empty rather than
+  guessed wrong; rebuild them in the Flow Builder).
 - Every tutorial URL was individually fetched and verified on 2026-09-16.
   If one dies, the skill still works — they're just links.
-- Sources consulted: Partner Acrobatics L-basing manual, YogaSlackers acro
-  library, Skilltaco acro catalog, AcroYoga Essentials progression, plus
-  community tutorials (Acro Adventure, AcroNoga, YogaSlackers, AcroRoots,
-  Ulu Yoga, Acro Connection, Acroloco, Acrodemy).
+- Tutorials with a YouTube `videoId` render as **thumbnail cards** in the
+  skill detail view, and the Library list shows a small thumbnail per
+  skill — so every skill is visually identifiable at a glance.
+- Sources consulted: Partner Acrobatics L-basing manual and YouTube
+  (Jacob Brown), jacobbrownacro.com, YogaSlackers acro library, Skilltaco
+  acro catalog, AcroYoga Essentials progression, Acrodemy, plus community
+  tutorials (Acro Adventure, AcroNoga, YogaSlackers, AcroRoots, Ulu Yoga,
+  Acro Connection, Acroloco, Yogafreq, Super Dave, Lauren Clausen &
+  Scott Cooper, Simons Akroyoga).

@@ -230,13 +230,26 @@ function safetyBox(safety) {
   return h + '</div>';
 }
 
+function ytThumb(t) {
+  // YouTube thumbnail for a tutorial entry; null for non-YouTube links.
+  return (t && t.videoId) ? 'https://i.ytimg.com/vi/' + t.videoId + '/hqdefault.jpg' : null;
+}
+
+function skillThumb(s) {
+  // First YouTube tutorial on the skill, for list rows.
+  const t = (s.tutorials || []).find(x => x.videoId);
+  return t ? ytThumb(t) : null;
+}
+
 function tutorialList(tuts) {
   if (!tuts || !tuts.length) return '<p class="muted">No tutorials linked yet — ask your community for a good one.</p>';
   let h = '';
   tuts.forEach(t => {
-    h += '<a class="tut" href="' + esc(t.url) + '" target="_blank" rel="noopener">' +
-      '<div class="tut-title">▶ ' + esc(t.title) + '</div>' +
-      (t.creator ? '<div class="tut-creator">' + esc(t.creator) + '</div>' : '') + '</a>';
+    const thumb = ytThumb(t);
+    h += '<a class="tut' + (thumb ? ' has-thumb' : '') + '" href="' + esc(t.url) + '" target="_blank" rel="noopener">' +
+      (thumb ? '<img class="tut-thumb" src="' + esc(thumb) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
+      '<div class="tut-body"><div class="tut-title">▶ ' + esc(t.title) + '</div>' +
+      (t.creator ? '<div class="tut-creator">' + esc(t.creator) + '</div>' : '') + '</div></a>';
   });
   return h;
 }
@@ -350,11 +363,13 @@ function updateLibraryList() {
   }
   let h = '<p class="muted small">' + items.length + ' skill' + (items.length === 1 ? '' : 's') + '</p>';
   items.forEach(s => {
-    h += '<a class="skill-item" href="#/skill/' + s.id + '">' +
-      '<div class="skill-top"><span class="skill-kind' + (s.kind === 'transition' ? ' transition' : '') + '">' + (s.kind === 'pose' ? 'Pose' : 'Transition') + '</span>' +
+    const th = skillThumb(s);
+    h += '<a class="skill-item' + (th ? ' has-thumb' : '') + '" href="#/skill/' + s.id + '">' +
+      (th ? '<img class="skill-thumb" src="' + esc(th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
+      '<div class="skill-main"><div class="skill-top"><span class="skill-kind' + (s.kind === 'transition' ? ' transition' : '') + '">' + (s.kind === 'pose' ? 'Pose' : 'Transition') + '</span>' +
       '<span class="skill-name">' + esc(s.name) + '</span>' + roleDots(s.id, roles, libProfile) + '</div>' +
       '<div class="skill-meta">' + diffPips(s.difficulty) +
-      (s.kind === 'transition' ? ' &nbsp;' + esc(skillName(s.from)) + ' → ' + esc(skillName(s.to)) : '') + '</div></a>';
+      (s.kind === 'transition' ? ' &nbsp;' + esc(skillName(s.from)) + ' → ' + esc(skillName(s.to)) : '') + '</div></div></a>';
   });
   el.innerHTML = h;
 }

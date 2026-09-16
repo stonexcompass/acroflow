@@ -223,8 +223,16 @@ label.field { display: block; margin: 12px 0 4px; font-weight: 700; font-size: .
 /* ---- tutorials ---- */
 .tut { display: block; padding: 10px 4px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
 .tut:last-child { border-bottom: none; }
+.tut.has-thumb { display: flex; gap: 12px; align-items: center; }
+.tut-thumb { width: 112px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--line); flex: none; }
+.tut-body { min-width: 0; }
 .tut-title { font-weight: 600; color: var(--primary); }
 .tut-creator { font-size: .8rem; color: var(--muted); }
+
+/* ---- library list thumbnails ---- */
+.skill-item.has-thumb { display: flex; gap: 12px; align-items: center; }
+.skill-thumb { width: 72px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--line); flex: none; }
+.skill-main { flex: 1; min-width: 0; }
 
 /* ---- badges / pills ---- */
 .pill {

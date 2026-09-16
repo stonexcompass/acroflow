@@ -39,8 +39,8 @@ window.SEED = {
       description: "The foundational L-base pose. The flyer lies prone (face-down) while the base's feet support the fronts of the flyer's hips. Almost everything in L-basing builds on a solid Bird.",
       safety: { risk: "low", spotterRequired: false, notes: "A spotter at the flyer's hips is still wise for the first few sessions." },
       tutorials: [
-        { title: "How to do the Bird pose", url: "https://www.youtube.com/watch?v=bmktYLuksek", creator: "Acro Connection" },
-        { title: "AcroYoga statics: 6 basic poses (bird, chair, foot to shin, whale, star)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", creator: "AcroYoga" }
+        { title: "How to do the Bird pose", url: "https://www.youtube.com/watch?v=bmktYLuksek", videoId: "bmktYLuksek", creator: "Acro Connection" },
+        { title: "AcroYoga statics: 6 basic poses (bird, chair, foot to shin, whale, star)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", videoId: "at8uZGPpOmY", creator: "AcroYoga" }
       ],
       prereqPoses: []
     },
@@ -53,8 +53,8 @@ window.SEED = {
       description: "The flyer sits upright on the base's feet (feet on the flyer's inner thighs), torso vertical. A stable resting pose and the launchpad for many transitions.",
       safety: { risk: "low", spotterRequired: false, notes: "Keep the base's arms straight and stacked; spotter nearby while learning the mount." },
       tutorials: [
-        { title: "AcroYoga Beginner Tutorial: Throne (4 entries + Bird to Throne)", url: "https://www.youtube.com/watch?v=8KZsfosPLZo", creator: "Noga / AcroNoga" },
-        { title: "AcroYoga: Beginner Flow (whale, throne, bird)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", creator: "AcroYoga Slovakia" }
+        { title: "AcroYoga Beginner Tutorial: Throne (4 entries + Bird to Throne)", url: "https://www.youtube.com/watch?v=8KZsfosPLZo", videoId: "8KZsfosPLZo", creator: "Noga / AcroNoga" },
+        { title: "AcroYoga: Beginner Flow (whale, throne, bird)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", videoId: "KowDFJolg3E", creator: "AcroYoga Slovakia" }
       ],
       prereqPoses: ["bird"]
     },
@@ -67,7 +67,7 @@ window.SEED = {
       description: "Like a throne but the flyer sits higher and more upright, base's feet on the flyer's seat. A friendly beginner balance pose.",
       safety: { risk: "low", spotterRequired: false, notes: "Flyer keeps weight centered over the base's feet; spotter optional once stable." },
       tutorials: [
-        { title: "AcroYoga statics: 6 basic poses (incl. chair)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", creator: "AcroYoga" }
+        { title: "AcroYoga statics: 6 basic poses (incl. chair)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", videoId: "at8uZGPpOmY", creator: "AcroYoga" }
       ],
       prereqPoses: []
     },
@@ -80,7 +80,7 @@ window.SEED = {
       description: "The flyer holds a tucked seated shape supported by the base's hands (or feet). A good first hand-balancing shape for the flyer.",
       safety: { risk: "low", spotterRequired: false, notes: "Base keeps arms straight; flyer practices controlled exits." },
       tutorials: [
-        { title: "YogaSlackers Teacher Training Pre-Reqs (tuck sit on hands at 0:38)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "YogaSlackers Teacher Training Pre-Reqs (tuck sit on hands at 0:38)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqPoses: []
     },
@@ -93,7 +93,7 @@ window.SEED = {
       description: "The flyer hangs folded forward over the base's feet, fully relaxed — the classic acro resting pose between efforts.",
       safety: { risk: "low", spotterRequired: false, notes: "No spotter needed; it's a rest pose. Base keeps a soft knee." },
       tutorials: [
-        { title: "AcroYoga: Beginner Flow (folded leaf)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", creator: "AcroYoga Slovakia" },
+        { title: "AcroYoga: Beginner Flow (folded leaf)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", videoId: "KowDFJolg3E", creator: "AcroYoga Slovakia" },
         { title: "AcroYoga Essentials: straddle bat from folded leaf", url: "https://acroyoga-essentials.com/02-07.html", creator: "AcroYoga Essentials" }
       ],
       prereqPoses: ["bird"]
@@ -107,8 +107,8 @@ window.SEED = {
       description: "From throne, the flyer leans back onto the base's feet for a supported backbend. Feels amazing; demands trust and communication.",
       safety: { risk: "low", spotterRequired: true, notes: "Spotter shelves hands under the flyer's back/head. Move into it slowly." },
       tutorials: [
-        { title: "AcroYoga: Beginner Flow (whale)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", creator: "AcroYoga Slovakia" },
-        { title: "AcroYoga statics: 6 basic poses (incl. whale)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", creator: "AcroYoga" }
+        { title: "AcroYoga: Beginner Flow (whale)", url: "https://www.youtube.com/watch?v=KowDFJolg3E", videoId: "KowDFJolg3E", creator: "AcroYoga Slovakia" },
+        { title: "AcroYoga statics: 6 basic poses (incl. whale)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", videoId: "at8uZGPpOmY", creator: "AcroYoga" }
       ],
       prereqPoses: ["throne"]
     },
@@ -121,7 +121,7 @@ window.SEED = {
       description: "Like Bird but the flyer faces away from the base (prone, head away). The base's feet support the flyer's hips from behind. (Regional names vary — 'Back Bird' usually means this pose.)",
       safety: { risk: "low", spotterRequired: true, notes: "Spotter at the hips; the flyer can't see the base, so clear verbal cues matter." },
       tutorials: [
-        { title: "Back Bird tutorial (beginner, with adjustments)", url: "https://www.youtube.com/watch?v=5ZiQP29Hek0", creator: "Ulu Yoga Bali" }
+        { title: "Back Bird tutorial (beginner, with adjustments)", url: "https://www.youtube.com/watch?v=5ZiQP29Hek0", videoId: "5ZiQP29Hek0", creator: "Ulu Yoga Bali" }
       ],
       prereqPoses: ["bird"]
     },
@@ -134,7 +134,7 @@ window.SEED = {
       description: "The flyer is inverted with their shoulders resting on the base's feet, legs up. The gateway inversion of L-basing.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter guards the flyer's hips/legs. Flyer learns to bail to the side, never straight back onto the neck." },
       tutorials: [
-        { title: "Acroloco AcroYoga Beginner's Guide (covers shoulderstand)", url: "https://www.youtube.com/watch?v=ntzWSPd46g4", creator: "Acroloco" }
+        { title: "Acroloco AcroYoga Beginner's Guide (covers shoulderstand)", url: "https://www.youtube.com/watch?v=ntzWSPd46g4", videoId: "ntzWSPd46g4", creator: "Acroloco" }
       ],
       prereqPoses: ["bird"]
     },
@@ -147,8 +147,8 @@ window.SEED = {
       description: "The flyer balances sideways on one of the base's feet (foot on the flyer's hip), body in a straight side plank. Key pose inside the Ninja Star washing machine.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the flyer's hips; the sideways balance point is unfamiliar at first." },
       tutorials: [
-        { title: "Inside Star mount & tick-tock calibration", url: "https://www.youtube.com/watch?v=gBSVH8tiiLU", creator: "Lux (AcroYoga)" },
-        { title: "Ninja Star tutorial (side star in sequence)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Inside Star mount & tick-tock calibration", url: "https://www.youtube.com/watch?v=gBSVH8tiiLU", videoId: "gBSVH8tiiLU", creator: "Lux (AcroYoga)" },
+        { title: "Ninja Star tutorial (side star in sequence)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqPoses: ["bird"]
     },
@@ -160,7 +160,9 @@ window.SEED = {
       difficulty: 2,
       description: "The flyer holds a rigid plank, face-up, supported by the base's feet and hands. A strong calibration pose for body tension.",
       safety: { risk: "med", spotterRequired: true, notes: "Flyer stays hollow and rigid; spotter near the shoulders." },
-      tutorials: [],
+      tutorials: [
+        { title: "Back plank to foot to hand (starts from back plank)", url: "https://www.youtube.com/watch?v=TprJFBwGnjs", videoId: "TprJFBwGnjs", creator: "Partner Acrobatics (Jacob Brown)" }
+      ],
       prereqPoses: ["bird"]
     },
     {
@@ -172,7 +174,7 @@ window.SEED = {
       description: "The flyer stands on the base's shins — a classic L-base balance pose and a stepping stone toward foot-to-hand skills.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the flyer's hips; flyer keeps weight over the base's feet." },
       tutorials: [
-        { title: "YogaSlackers Teacher Training Pre-Reqs (shin to foot / foot to shin)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "YogaSlackers Teacher Training Pre-Reqs (shin to foot / foot to shin)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqPoses: ["bird"]
     },
@@ -207,8 +209,8 @@ window.SEED = {
       description: "The flyer is inverted, face-down, supported at the shoulders/upper arms by the base's feet, arms out like a star. The hub of many washing machines.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the flyer's hips/legs. Build up via shoulder stand first." },
       tutorials: [
-        { title: "AcroYoga statics: 6 basic poses (incl. star)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", creator: "AcroYoga" },
-        { title: "YogaSlackers Pre-Reqs (free star, star↔bird, star↔back flying)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "AcroYoga statics: 6 basic poses (incl. star)", url: "https://www.youtube.com/watch?v=at8uZGPpOmY", videoId: "at8uZGPpOmY", creator: "AcroYoga" },
+        { title: "YogaSlackers Pre-Reqs (free star, star↔bird, star↔back flying)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqPoses: ["shoulder_stand"]
     },
@@ -221,7 +223,7 @@ window.SEED = {
       description: "Inverted like a star but the flyer faces the opposite direction (shoulders on the base's feet, head away). A Ninja Star-adjacent skill.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the legs; disorientation is common at first." },
       tutorials: [
-        { title: "YogaSlackers Pre-Reqs (reverse star at 1:37)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "YogaSlackers Pre-Reqs (reverse star at 1:37)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqPoses: ["shoulder_stand"]
     },
@@ -245,7 +247,7 @@ window.SEED = {
       description: "The flyer hangs fully inverted in a wide straddle, the base's feet on the inner thighs. A restful inversion and a core Ninja Star pose.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the flyer's hips until entries/exits are clean. Flyer keeps the straddle wide." },
       tutorials: [
-        { title: "AcroYoga Beginner Tutorial: Straddle Bat", url: "https://www.youtube.com/watch?v=9m3Q8HeXaTY", creator: "Noga / AcroNoga" },
+        { title: "AcroYoga Beginner Tutorial: Straddle Bat", url: "https://www.youtube.com/watch?v=9m3Q8HeXaTY", videoId: "9m3Q8HeXaTY", creator: "Noga / AcroNoga" },
         { title: "Straddle Bat tutorial (written + video)", url: "https://lostartofhandbalancing.com/acroyoga-beginner-tutorial-straddle-bat/", creator: "Lost Art of Hand Balancing" }
       ],
       prereqPoses: ["bird"]
@@ -259,7 +261,7 @@ window.SEED = {
       description: "The flyer handstands on the base's feet, hand-to-foot. The classic intermediate inversion — everything in advanced L-basing flows through here.",
       safety: { risk: "high", spotterRequired: true, notes: "Spotter REQUIRED, guarding the flyer's hips/legs. Enter from throne; never kick up cold." },
       tutorials: [
-        { title: "YogaSlackers Pre-Reqs (low foot to hand at 0:47)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" },
+        { title: "YogaSlackers Pre-Reqs (low foot to hand at 0:47)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" },
         { title: "Reverse Foot to Hand tutorial (enter from throne, exit to bird)", url: "https://acrodemy.eu/2025/03/17/reverse-foot-to-hand-f2h-quick-easy-acroyoga-tutorial/", creator: "Acrodemy" }
       ],
       prereqPoses: ["throne", "shoulder_stand"]
@@ -273,7 +275,7 @@ window.SEED = {
       description: "The flyer handstands on the base's hands, hand-to-hand. Less stable than foot-to-hand — the true test of straight-line handstands for both partners.",
       safety: { risk: "high", spotterRequired: true, notes: "Spotter REQUIRED. Both partners need solid straight-body handstand lines first." },
       tutorials: [
-        { title: "Washing Machines Series 1 (incl. foot to shin → reverse hand to hand)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
+        { title: "Washing Machines Series 1 (incl. foot to shin → reverse hand to hand)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
       ],
       prereqPoses: ["foot_to_hand"]
     }
@@ -293,8 +295,8 @@ window.SEED = {
       description: "From bird, the flyer folds up and sits back onto the base's feet into throne. The first transition most people learn.",
       safety: { risk: "low", spotterRequired: true, notes: "Spotter at the hips while the timing is new." },
       tutorials: [
-        { title: "Throne tutorial (incl. Bird → Throne)", url: "https://www.youtube.com/watch?v=8KZsfosPLZo", creator: "Noga / AcroNoga" },
-        { title: "Beginner AcroYoga class (foundational poses & transitions)", url: "https://www.youtube.com/watch?v=Qs7lWjwdogw", creator: "AcroRoots" }
+        { title: "Throne tutorial (incl. Bird → Throne)", url: "https://www.youtube.com/watch?v=8KZsfosPLZo", videoId: "8KZsfosPLZo", creator: "Noga / AcroNoga" },
+        { title: "Beginner AcroYoga class (foundational poses & transitions)", url: "https://www.youtube.com/watch?v=Qs7lWjwdogw", videoId: "Qs7lWjwdogw", creator: "AcroRoots" }
       ],
       prereqTransitions: []
     },
@@ -308,7 +310,7 @@ window.SEED = {
       description: "From throne, the flyer dives forward into the base's feet and extends into bird. The natural return trip.",
       safety: { risk: "low", spotterRequired: true, notes: "Flyer keeps arms connected to the base's hands until the feet land on the hips." },
       tutorials: [
-        { title: "Beginner AcroYoga class (foundational poses & transitions)", url: "https://www.youtube.com/watch?v=Qs7lWjwdogw", creator: "AcroRoots" }
+        { title: "Beginner AcroYoga class (foundational poses & transitions)", url: "https://www.youtube.com/watch?v=Qs7lWjwdogw", videoId: "Qs7lWjwdogw", creator: "AcroRoots" }
       ],
       prereqTransitions: []
     },
@@ -322,7 +324,7 @@ window.SEED = {
       description: "The flyer pikes/presses from bird up into the inverted star. A big milestone transition.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; the flyer should already hold a clean shoulder stand." },
       tutorials: [
-        { title: "YogaSlackers Pre-Reqs (bird → star at 1:08)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "YogaSlackers Pre-Reqs (bird → star at 1:08)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqTransitions: []
     },
@@ -336,7 +338,7 @@ window.SEED = {
       description: "From the inverted star, the flyer lowers/rolls out into bird. Control on the way down is the whole skill.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter guides the hips down; no collapsing." },
       tutorials: [
-        { title: "YogaSlackers Pre-Reqs (star → bird at 0:58)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", creator: "YogaSlackers" }
+        { title: "YogaSlackers Pre-Reqs (star → bird at 0:58)", url: "https://www.youtube.com/watch?v=zOEXQPghTCA", videoId: "zOEXQPghTCA", creator: "YogaSlackers" }
       ],
       prereqTransitions: []
     },
@@ -350,7 +352,7 @@ window.SEED = {
       description: "The flyer shifts sideways off one hip onto a single foot of the base into side star. The entry used inside Ninja Star.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; small, patient weight shifts." },
       tutorials: [
-        { title: "Ninja Star tutorial (side star transitions)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (side star transitions)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -364,7 +366,7 @@ window.SEED = {
       description: "From side star, the flyer re-centers onto both of the base's feet back into bird.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; don't rush the re-centering." },
       tutorials: [
-        { title: "Ninja Star tutorial (side star transitions)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (side star transitions)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -377,7 +379,9 @@ window.SEED = {
       difficulty: 3,
       description: "The flyer comes down out of the inverted reverse star and lands seated in throne. Listed in the Partner Acrobatics manual.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter guides the descent; flyer lands softly, knees soft." },
-      tutorials: [],
+      tutorials: [
+        { title: "Rev. star to throne", url: "https://www.youtube.com/watch?v=D7DEqqNZMyQ", videoId: "D7DEqqNZMyQ", creator: "Partner Acrobatics (Jacob Brown)" }
+      ],
       prereqTransitions: []
     },
     {
@@ -391,7 +395,8 @@ window.SEED = {
       safety: { risk: "high", spotterRequired: true, notes: "Spotter REQUIRED at the flyer's hips/legs for every attempt while learning." },
       tutorials: [
         { title: "Reverse Straddle Throne → Low Foot-2-Hand", url: "https://acrodemy.eu/2025/03/22/from-reverse-straddle-throne-to-low-foot-2-hand/", creator: "Acrodemy" },
-        { title: "Reverse Foot to Hand tutorial (enter from throne)", url: "https://acrodemy.eu/2025/03/17/reverse-foot-to-hand-f2h-quick-easy-acroyoga-tutorial/", creator: "Acrodemy" }
+        { title: "Reverse Foot to Hand tutorial (enter from throne)", url: "https://acrodemy.eu/2025/03/17/reverse-foot-to-hand-f2h-quick-easy-acroyoga-tutorial/", creator: "Acrodemy" },
+        { title: "Throne to f2h", url: "https://www.youtube.com/watch?v=P_ndZhMx0FU", videoId: "P_ndZhMx0FU", creator: "Partner Acrobatics (Jacob Brown)" }
       ],
       prereqTransitions: ["t_bird_to_throne"]
     },
@@ -419,7 +424,7 @@ window.SEED = {
       description: "From star, the flyer rotates out over one shoulder into reverse bird. The key link of the Four Step washing machine.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter follows the rotation at the hips." },
       tutorials: [
-        { title: "4 step (star → back bird → star)", url: "https://www.youtube.com/watch?v=y6mlhItALag", creator: "AcroJulie" }
+        { title: "4 step (star → back bird → star)", url: "https://www.youtube.com/watch?v=y6mlhItALag", videoId: "y6mlhItALag", creator: "AcroJulie" }
       ],
       prereqTransitions: ["t_bird_to_star"]
     },
@@ -433,7 +438,7 @@ window.SEED = {
       description: "From reverse bird, the flyer inverts back up into star. Closes the Four Step loop.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; base keeps feet active under the flyer's shoulders." },
       tutorials: [
-        { title: "4 step (star → back bird → star)", url: "https://www.youtube.com/watch?v=y6mlhItALag", creator: "AcroJulie" }
+        { title: "4 step (star → back bird → star)", url: "https://www.youtube.com/watch?v=y6mlhItALag", videoId: "y6mlhItALag", creator: "AcroJulie" }
       ],
       prereqTransitions: ["t_star_to_reverse_bird"]
     },
@@ -447,7 +452,7 @@ window.SEED = {
       description: "From side star, the flyer opens into the inverted straddle bat. A Ninja Star link.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips through the inversion." },
       tutorials: [
-        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -461,7 +466,7 @@ window.SEED = {
       description: "From the inverted straddle bat, the flyer closes back to one side into side star. A Ninja Star link.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; flyer keeps the straddle wide until the foot lands." },
       tutorials: [
-        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -475,7 +480,7 @@ window.SEED = {
       description: "From side star, the flyer swings down and around into reverse bird. A Ninja Star link.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter follows the swing at the hips." },
       tutorials: [
-        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -489,7 +494,7 @@ window.SEED = {
       description: "From reverse bird, the flyer lifts back up to one side into side star, closing the Ninja Star loop.",
       safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; deliberate, unhurried lift." },
       tutorials: [
-        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (full sequence breakdown)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ],
       prereqTransitions: []
     },
@@ -543,7 +548,9 @@ window.SEED = {
       difficulty: 4,
       description: "From back plank, the flyer pikes up into foot-to-hand. Listed in the Partner Acrobatics manual.",
       safety: { risk: "high", spotterRequired: true, notes: "Spotter REQUIRED; needs strong hollow-body tension." },
-      tutorials: [],
+      tutorials: [
+        { title: "Back plank to foot to hand", url: "https://www.youtube.com/watch?v=TprJFBwGnjs", videoId: "TprJFBwGnjs", creator: "Partner Acrobatics (Jacob Brown)" }
+      ],
       prereqTransitions: []
     },
     {
@@ -555,8 +562,108 @@ window.SEED = {
       difficulty: 5,
       description: "From star, the flyer's hands transfer from the base's feet to the base's hands into hand-to-hand. Advanced and humbling.",
       safety: { risk: "high", spotterRequired: true, notes: "Spotter REQUIRED, ideally experienced. Solid star and foot-to-hand first." },
-      tutorials: [],
+      tutorials: [
+        { title: "Star to hand to hand", url: "https://www.youtube.com/watch?v=QuURxWUNdXk", videoId: "QuURxWUNdXk", creator: "Partner Acrobatics (Jacob Brown)" }
+      ],
       prereqTransitions: ["t_bird_to_star"]
+    },
+    {
+      id: "t_side_star_to_star",
+      name: "Side Star → Star",
+      from: "side_star",
+      to: "star",
+      aliases: [],
+      difficulty: 2,
+      description: "From side star, the flyer squares up and presses into the inverted star. The middle link of the cork screw.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; keep the press slow and stacked." },
+      tutorials: [
+        { title: "AcroYoga Essentials: Cork Screw (side star → star → side star)", url: "https://acroyoga-essentials.com/03-07.html", creator: "AcroYoga Essentials" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_star_to_side_star",
+      name: "Star → Side Star",
+      from: "star",
+      to: "side_star",
+      aliases: [],
+      difficulty: 2,
+      description: "From star, the flyer tips out to one side into side star. The exit link of the cork screw.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; control the lateral tip." },
+      tutorials: [
+        { title: "AcroYoga Essentials: Cork Screw (side star → star → side star)", url: "https://acroyoga-essentials.com/03-07.html", creator: "AcroYoga Essentials" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_reverse_bird_to_f2h",
+      name: "Reverse Bird → Foot to Hand",
+      from: "reverse_bird",
+      to: "foot_to_hand",
+      aliases: ["Back Bird to F2H"],
+      difficulty: 3,
+      description: "From reverse bird, the flyer folds and stands up into the base's hands. The entry of the Trap Door washing machine.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; base keeps elbows grounded as the flyer stands." },
+      tutorials: [
+        { title: "Acro Yoga Trap Door Tutorial (reverse bird → foot to hand → reverse bird)", url: "https://www.youtube.com/watch?v=UGFgdq38RQc", videoId: "UGFgdq38RQc", creator: "Yogafreq" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_f2h_to_reverse_bird",
+      name: "Foot to Hand → Reverse Bird",
+      from: "foot_to_hand",
+      to: "reverse_bird",
+      aliases: ["F2H to Back Bird"],
+      difficulty: 3,
+      description: "From foot to hand, the flyer hinges back down into reverse bird. The exit of the Trap Door washing machine.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; slow hinge, no dropping." },
+      tutorials: [
+        { title: "Acro Yoga Trap Door Tutorial (reverse bird → foot to hand → reverse bird)", url: "https://www.youtube.com/watch?v=UGFgdq38RQc", videoId: "UGFgdq38RQc", creator: "Yogafreq" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_star_to_f2h",
+      name: "Star → Foot to Hand",
+      from: "star",
+      to: "foot_to_hand",
+      aliases: ["Star to F2H"],
+      difficulty: 3,
+      description: "From star, the flyer lowers/steps down into foot to hand. Used in Super Dave's beginner reverse-tumbleweed flow.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; control the descent." },
+      tutorials: [
+        { title: "Beginner Acro Yoga Flow Sequence 5 (Super Dave) — written breakdown", url: "https://acrodemy.eu/2025/03/12/beginner-acro-yoga-flow-sequence-5-tutorial-with-super-dave/", creator: "Acrodemy / Super Dave" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_straddle_bat_to_star",
+      name: "Straddle Bat → Star",
+      from: "straddle_bat",
+      to: "star",
+      aliases: ["Bat to Star"],
+      difficulty: 3,
+      description: "From straddle bat, the flyer pikes/presses back up into star. Closes Super Dave's beginner reverse-tumbleweed flow.",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; flyer keeps the straddle wide until stacked." },
+      tutorials: [
+        { title: "Beginner Acro Yoga Flow Sequence 5 (Super Dave) — written breakdown", url: "https://acrodemy.eu/2025/03/12/beginner-acro-yoga-flow-sequence-5-tutorial-with-super-dave/", creator: "Acrodemy / Super Dave" }
+      ],
+      prereqTransitions: []
+    },
+    {
+      id: "t_star_to_straddle_bat",
+      name: "Star → Straddle Bat",
+      from: "star",
+      to: "straddle_bat",
+      aliases: ["Star to Bat"],
+      difficulty: 3,
+      description: "From star, the flyer folds forward into straddle bat. Appears in the AcroYoga Essentials final washing machine ('after the Star comes a Straddle Bat').",
+      safety: { risk: "med", spotterRequired: true, notes: "Spotter at the hips; fold with control, don't drop." },
+      tutorials: [
+        { title: "AcroYoga Essentials: Final Washing Machine (written)", url: "https://acroyoga-essentials.com/03-08.html", creator: "AcroYoga Essentials" }
+      ],
+      prereqTransitions: []
     }
   ],
 
@@ -573,7 +680,7 @@ window.SEED = {
       origin: "seed",
       note: "The classic intermediate washing machine. Sequence follows the Acro Adventure tutorial; regional variations exist (some communities start from star or add pops).",
       tutorials: [
-        { title: "Ninja Star tutorial (sequence: side star → straddle bat → side star → reversed bird)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", creator: "Acro Adventure" }
+        { title: "Ninja Star tutorial (sequence: side star → straddle bat → side star → reversed bird)", url: "https://www.youtube.com/watch?v=L8t-_hSdEj0", videoId: "L8t-_hSdEj0", creator: "Acro Adventure" }
       ]
     },
     {
@@ -585,7 +692,7 @@ window.SEED = {
       origin: "seed",
       note: "Sequence per the AcroJulie '4 step' video (star → back bird → star, repeat). Different lineages teach different 'four steps' — treat this one as sequence-unverified for your community.",
       tutorials: [
-        { title: "4 step (star → back bird → star, repeat)", url: "https://www.youtube.com/watch?v=y6mlhItALag", creator: "AcroJulie" }
+        { title: "4 step (star → back bird → star, repeat)", url: "https://www.youtube.com/watch?v=y6mlhItALag", videoId: "y6mlhItALag", creator: "AcroJulie" }
       ]
     },
     {
@@ -597,6 +704,8 @@ window.SEED = {
       origin: "seed",
       note: "Sequence unverified — we did not want to guess the steps wrong. Learn it from the tutorial, then use the Flow Builder to record your community's version.",
       tutorials: [
+        { title: "Barrel roll", url: "https://www.youtube.com/watch?v=ty7J2yF4h8w", videoId: "ty7J2yF4h8w", creator: "Partner Acrobatics (Jacob Brown)" },
+        { title: "Acro Washing Machine Skill Test (incl. Barrel Roll & High Barrel Roll)", url: "https://www.youtube.com/watch?v=Hz49xyPPyZY", videoId: "Hz49xyPPyZY", creator: "Jacob Brown" },
         { title: "YogaSlackers acro library (Barrel Roll video)", url: "https://yogaslackers.com/explore/acro/library/", creator: "YogaSlackers" }
       ]
     },
@@ -621,7 +730,80 @@ window.SEED = {
       origin: "seed",
       note: "A gentle starter sequence adapted from the AcroYoga Slovakia beginner flow (whale → throne → … → bird). Some of these links have no named transition in our library yet — that's normal, and exactly what the '?' markers in the Flow Builder are for.",
       tutorials: [
-        { title: "AcroYoga: Beginner Flow", url: "https://www.youtube.com/watch?v=KowDFJolg3E", creator: "AcroYoga Slovakia" }
+        { title: "AcroYoga: Beginner Flow", url: "https://www.youtube.com/watch?v=KowDFJolg3E", videoId: "KowDFJolg3E", creator: "AcroYoga Slovakia" }
+      ]
+    },
+    {
+      id: "f_cork_screw",
+      name: "Cork Screw",
+      steps: ["bird", "side_star", "star", "side_star", "bird"],
+      transitions: ["t_bird_to_side_star", "t_side_star_to_star", "t_star_to_side_star", "t_side_star_to_bird"],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence per AcroYoga Essentials: bird → side star → star → side star → bird. Some lineages alternate sides each pass; this is the same-side version.",
+      tutorials: [
+        { title: "Corkscrew", url: "https://www.youtube.com/watch?v=lCNU_HBC4zo", videoId: "lCNU_HBC4zo", creator: "Partner Acrobatics (Jacob Brown)" },
+        { title: "AcroYoga Essentials: Cork Screw (written)", url: "https://acroyoga-essentials.com/03-07.html", creator: "AcroYoga Essentials" }
+      ]
+    },
+    {
+      id: "f_trap_door",
+      name: "Trap Door",
+      steps: ["reverse_bird", "foot_to_hand", "reverse_bird"],
+      transitions: ["t_reverse_bird_to_f2h", "t_f2h_to_reverse_bird"],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence per the Yogafreq tutorial: reverse bird → foot to hand → back to reverse bird. A compact, repeatable beginner-intermediate machine.",
+      tutorials: [
+        { title: "Acro Yoga Trap Door Tutorial (reverse bird → foot to hand → reverse bird)", url: "https://www.youtube.com/watch?v=UGFgdq38RQc", videoId: "UGFgdq38RQc", creator: "Yogafreq" }
+      ]
+    },
+    {
+      id: "f_reverse_tumbleweed",
+      name: "Reverse Tumbleweed (Beginner)",
+      steps: ["star", "foot_to_hand", "reverse_bird", "straddle_bat", "star"],
+      transitions: ["t_star_to_f2h", "t_f2h_to_reverse_bird", "t_reverse_bird_to_straddle_bat", "t_straddle_bat_to_star"],
+      washingMachine: true,
+      origin: "research",
+      note: "Super Dave's beginner flow 5 via Acrodemy: star → low foot to hand → back bird → straddle bat → back to star. Described as a beginner-friendly, simplified reverse Tumbleweed.",
+      tutorials: [
+        { title: "Beginner Acro Yoga Flow Sequence 5 (Super Dave) — written breakdown", url: "https://acrodemy.eu/2025/03/12/beginner-acro-yoga-flow-sequence-5-tutorial-with-super-dave/", creator: "Acrodemy / Super Dave" }
+      ]
+    },
+    {
+      id: "f_final_wm_essentials",
+      name: "Final Washing Machine",
+      steps: ["reverse_star", "throne", "bird", "side_star", "star", "straddle_bat", "side_star", "straddle_bat", "side_star", "reverse_bird"],
+      transitions: ["t_reverse_star_to_throne", "t_throne_to_bird", "t_bird_to_side_star", "t_side_star_to_star", "t_star_to_straddle_bat", "t_straddle_bat_to_side_star", "t_side_star_to_straddle_bat", "t_straddle_bat_to_side_star", "t_side_star_to_reverse_bird"],
+      washingMachine: true,
+      origin: "research",
+      note: "Long combo from AcroYoga Essentials: reverse star → throne → bird → side star → star → straddle bat, then a full Ninja Star ending in reverse bird. An extended flow rather than a tight cycle.",
+      tutorials: [
+        { title: "AcroYoga Essentials: Final Washing Machine (written)", url: "https://acroyoga-essentials.com/03-08.html", creator: "AcroYoga Essentials" }
+      ]
+    },
+    {
+      id: "f_star_tumbler",
+      name: "Star Tumbler",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — appears at 0:06 in the Washing Machines Series 1 video. Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "AcroYoga Washing Machines: Series 1 (Star Tumbler at 0:06)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
+      ]
+    },
+    {
+      id: "f_mystery_box",
+      name: "Mystery Box",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — appears at 2:15 in the Washing Machines Series 1 video. Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "AcroYoga Washing Machines: Series 1 (Mystery Box at 2:15)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
       ]
     }
   ]
