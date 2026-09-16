@@ -313,3 +313,25 @@ label.field { display: block; margin: 12px 0 4px; font-weight: 700; font-size: .
   .view { padding-top: 24px; }
   h1 { font-size: 1.7rem; }
 }
+
+/* ---- flows as first-class citizens ---- */
+.flow-card { display: flex; gap: 12px; align-items: center; }
+.flow-card .skill-main { flex: 1; min-width: 0; }
+a.skill-name { color: inherit; text-decoration: none; }
+.skill-thumb { width: 76px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--line); flex: none; }
+.skill-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.icon-btn {
+  background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px;
+  line-height: 1; min-height: var(--tap); min-width: var(--tap);
+}
+.flow-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 12px; }
+.btn.small { min-height: 40px; padding: 6px 12px; font-size: .85rem; }
+.bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+.bar > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.goal-card { margin-bottom: 12px; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.checklist .check { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 10px; text-decoration: none; color: inherit; font-size: .92rem; }
+.checklist .check.on { border-color: var(--accent); }
+.checklist .check-mark { color: var(--accent); font-weight: 800; }
+.checklist .check-lv { margin-left: auto; font-size: .78rem; color: var(--muted); }

@@ -3,7 +3,9 @@
 An offline-first, installable web app for tracking your acro-yoga practice:
 a **skill graph** of L-base poses and transitions (tracked separately, per
 role), a "what should I learn next?" discovery engine, a flow builder that
-detects washing machines, a two-person jam comparison, and a practice log.
+detects washing machines, a two-person jam comparison, a practice log, and
+first-class flows & washing machines — a 🌀 Flows library, an active
+training set, starred end goals, and per-role progress on the flow itself.
 
 **No build step. No frameworks. No CDNs.** Just `index.html` + `styles.css` +
 `app.js` + `data.js`, so anyone can read it, host it, and hack on it.
@@ -50,17 +52,25 @@ you can add one later in the same Pages settings.
 
 Everything lives under one localStorage key, **`acroflow.v1`**:
 
-- `settings` — `{ name, primaryRoles: ['base','flyer'] }`
+- `settings` — `{ name, primaryRoles: ['base','flyer'],
+  trainingFlowIds: [], goalFlowIds: [] }`. `trainingFlowIds` is the active
+  training set (flows you drill, from the 🌀 Flows library or the Builder);
+  `goalFlowIds` is a subset of it — starred end-goal flows.
 - `progress` — `{ skillId: { base, flyer, spotter } }`, each level one of
-  `unstarted | learning | drilling | solid | teach`. Poses and transitions are
-  tracked **separately** — knowing Bird and Throne says nothing about
-  Bird → Throne. Only non-`unstarted` entries are stored.
+  `unstarted | learning | drilling | solid | teach`. Poses, transitions **and
+  flows** are tracked in the same map — flow ids are just more keys, so no
+  schema change was needed to track a whole machine per role. Knowing Bird
+  and Throne says nothing about Bird → Throne, and drilling every part of a
+  machine says nothing about the machine itself: the flow's own level is
+  tracked separately. Only non-`unstarted` entries are stored.
 - `partnerProgress` — same shape, for the Jam partner profile on this device.
 - `flows` — user-built flows: `{ id, name, steps:[poseIds],
   transitions:[ids|null aligned], washingMachine, origin:'user', note }`.
   Seed flows live in `data.js`, not here.
 - `practiceLogs` — `[{ id, date, partner, role, skills:[skillIds],
-  confidence:1-5, notes }]`.
+  confidence:1-5, notes }]`. `skills` can hold pose, transition **and flow**
+  ids — the log form groups them into poses / transitions / flows & washing
+  machines.
 
 ## The StorageAdapter seam (read this before adding sync)
 
@@ -162,8 +172,8 @@ The URL and key are stored only in your browser's localStorage (under
 
 | Table | App state | Notes |
 |---|---|---|
-| `profiles` | `settings` | `display_name` ↔ name, `primary_roles` ↔ primaryRoles |
-| `progress` | `progress` | one row per skill × role; sparse (no `unstarted`) |
+| `profiles` | `settings` | `display_name` ↔ name, `primary_roles` ↔ primaryRoles, `training_flow_ids` ↔ trainingFlowIds, `goal_flow_ids` ↔ goalFlowIds |
+| `progress` | `progress` | one row per skill × role; sparse (no `unstarted`). Pose, transition **and flow** ids share this table — no schema change needed to track machines |
 | `partner_progress` | `partnerProgress` | your notes about the jam partner |
 | `practice_logs` | `practiceLogs` | local `l_…` ids map to UUIDs in a local id-map |
 | `user_flows` | `flows` | same UUID id-mapping; `transitions` NULLs preserved |
@@ -182,10 +192,11 @@ server-side editing.
 
 ## Seed library notes
 
-- L-base only for v1: **19 poses, 27 transitions, 11 flows**
+- L-base only for v1: **19 poses, 27 transitions, 15 flows**
   (Ninja Star, Four Step, Beginner Flow, Cork Screw, Trap Door,
   Reverse Tumbleweed (Beginner), Final Washing Machine + Barrel Roll,
-  Catherine's Wheel, Star Tumbler and Mystery Box with **sequence
+  Catherine's Wheel, Star Tumbler, Mystery Box, Musical Chairs,
+  Reverse Star Tumbler, Slacker Cycle and High Barrel Roll with **sequence
   unverified** — their steps are deliberately left empty rather than
   guessed wrong; rebuild them in the Flow Builder).
 - Every tutorial URL was individually fetched and verified on 2026-09-16.
@@ -193,6 +204,17 @@ server-side editing.
 - Tutorials with a YouTube `videoId` render as **thumbnail cards** in the
   skill detail view, and the Library list shows a small thumbnail per
   skill — so every skill is visually identifiable at a glance.
+- **Flows are first-class citizens**: the Library has a 🌀 Flows tab with
+  thumbnails, per-role dots, training toggles and goal stars; every flow
+  detail page tracks the flow's own per-role progress separately from its
+  components; training flows get a **"Flows to drill"** section in Discover
+  (components ≥70% drilling+, flow not solid, ⭐ goals first) and a
+  **"My goals"** section at the top of Discover with a readiness bar and a
+  full component checklist; the practice log groups drilled skills into
+  poses / transitions / flows; Jam keeps its component-based "both can run"
+  and "one skill away" flow calculations. `trainingFlowIds`/`goalFlowIds`
+  sync through the `profiles` table (v1.1 schema adds the two columns);
+  flow *progress* rides the existing `progress` table with no schema change.
 - Sources consulted: Partner Acrobatics L-basing manual and YouTube
   (Jacob Brown), jacobbrownacro.com, YogaSlackers acro library, Skilltaco
   acro catalog, AcroYoga Essentials progression, Acrodemy, plus community

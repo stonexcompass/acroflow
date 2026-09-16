@@ -87,6 +87,9 @@ const LocalAdapter = {
     if (typeof data.settings !== 'object' || data.settings === null) throw new Error('Missing "settings" in import file.');
     if (!Array.isArray(data.flows)) data.flows = [];
     if (typeof data.partnerProgress !== 'object' || data.partnerProgress === null) data.partnerProgress = {};
+    // Backfill flow training/goal lists for exports from older versions.
+    if (!Array.isArray(data.settings.trainingFlowIds)) data.settings.trainingFlowIds = [];
+    if (!Array.isArray(data.settings.goalFlowIds)) data.settings.goalFlowIds = [];
     return data;
   }
 };
@@ -98,7 +101,7 @@ let DB = LocalAdapter;
 function freshState() {
   return {
     version: window.SEED.version,
-    settings: { name: '', primaryRoles: ['base', 'flyer'] },
+    settings: { name: '', primaryRoles: ['base', 'flyer'], trainingFlowIds: [], goalFlowIds: [] },
     progress: {},          // { skillId: { base:'drilling', flyer:'solid', ... } } (sparse: only non-'unstarted' stored)
     partnerProgress: {},   // same shape, for the Jam partner profile on this device
     flows: [],              // user-created flows (seed flows live in data.js)
@@ -123,7 +126,9 @@ window.SEED.transitions.forEach(t => pairToTrans.set(t.from + '→' + t.to, t.id
 
 function skillName(id) {
   const s = byId.get(id);
-  return s ? s.name : id;
+  if (s) return s.name;
+  const f = getFlow(id); // practice logs can reference flows too
+  return f ? f.name : id;
 }
 
 function allFlows() {
@@ -143,6 +148,59 @@ function flowLinks(flow) {
     out.push({ from, to, tid });
   }
   return out;
+}
+
+/* ---------------- flow training & goal helpers ---------------- */
+
+/** Unique component skill ids of a flow: poses + known transitions. */
+function flowComponents(flow) {
+  const poses = [], transitions = [];
+  const seen = new Set();
+  flow.steps.forEach(id => { if (!seen.has('p' + id)) { seen.add('p' + id); poses.push(id); } });
+  flowLinks(flow).forEach(l => {
+    if (l.tid && !seen.has('t' + l.tid)) { seen.add('t' + l.tid); transitions.push(l.tid); }
+  });
+  return { poses, transitions };
+}
+
+/** Difficulty of a flow: hardest known component; 3 when nothing is known. */
+function flowDifficulty(flow) {
+  const { poses, transitions } = flowComponents(flow);
+  let max = 0;
+  poses.concat(transitions).forEach(id => {
+    const s = byId.get(id);
+    if (s && s.difficulty > max) max = s.difficulty;
+  });
+  return max || 3;
+}
+
+/** True when the flow's sequence comes from a trusted written source. */
+function flowVerified(flow) {
+  return flow.steps.length > 0 && !(flow.note || '').toLowerCase().includes('unverified');
+}
+
+function isTraining(flowId) {
+  return state.settings.trainingFlowIds.includes(flowId);
+}
+
+function isGoal(flowId) {
+  return state.settings.goalFlowIds.includes(flowId);
+}
+
+/** Remove dangling references (deleted flows) and keep goal ⊆ training. */
+function pruneFlowLists() {
+  const ok = id => !!getFlow(id);
+  state.settings.trainingFlowIds = state.settings.trainingFlowIds.filter(ok);
+  state.settings.goalFlowIds = state.settings.goalFlowIds.filter(id => ok(id) && isTraining(id));
+}
+
+/** Fraction (0..1) of a flow's unique components at/above min for roles/profile. */
+function flowReadiness(flow, roles, min, profile) {
+  const { poses, transitions } = flowComponents(flow);
+  const comps = poses.concat(transitions);
+  if (!comps.length) return null; // sequence unknown — can't measure
+  const ready = comps.filter(id => atLeast(id, roles, min, profile || 'you')).length;
+  return { pct: ready / comps.length, ready, total: comps.length };
 }
 
 /* ---------------- progress helpers ---------------- */
@@ -332,9 +390,9 @@ function renderLibrary(view) {
   if (libProfile === 'partner') {
     h += '<p class="hint">Editing your jam partner\'s skills — this profile lives on this device. Tap any skill to set their per-role levels.</p>';
   }
-  h += '<div class="toolbar"><input type="search" id="lib-q" placeholder="Search poses & transitions…" value="' + esc(libQuery) + '" oninput="App.libSearch(this.value)" aria-label="Search skills"></div>';
+  h += '<div class="toolbar"><input type="search" id="lib-q" placeholder="Search poses, transitions & flows…" value="' + esc(libQuery) + '" oninput="App.libSearch(this.value)" aria-label="Search library"></div>';
   h += '<div class="chip-row" role="group" aria-label="Type filter">' +
-    chip('all', libType, 'All') + chip('pose', libType, 'Poses') + chip('transition', libType, 'Transitions') + '</div>';
+    chip('all', libType, 'All') + chip('pose', libType, 'Poses') + chip('transition', libType, 'Transitions') + chip('flow', libType, '🌀 Flows') + '</div>';
   h += '<div class="chip-row" role="group" aria-label="Difficulty filter">' +
     '<button type="button" class="chip' + (libDiff === 0 ? ' on' : '') + '" onclick="App.libDiff(0)">Any ★</button>';
   for (let d = 1; d <= 5; d++) h += '<button type="button" class="chip' + (libDiff === d ? ' on' : '') + '" onclick="App.libDiff(' + d + ')">' + d + '★</button>';
@@ -355,6 +413,7 @@ function renderLibrary(view) {
 function updateLibraryList() {
   const el = document.getElementById('lib-list');
   if (!el) return;
+  if (libType === 'flow') { updateFlowList(el); return; }
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
   const items = libFiltered();
   if (!items.length) {
@@ -371,6 +430,59 @@ function updateLibraryList() {
       '<div class="skill-meta">' + diffPips(s.difficulty) +
       (s.kind === 'transition' ? ' &nbsp;' + esc(skillName(s.from)) + ' → ' + esc(skillName(s.to)) : '') + '</div></div></a>';
   });
+  el.innerHTML = h;
+}
+
+/* ---------------- Flow library cards (flows as first-class citizens) ---------------- */
+
+function libFlows() {
+  const q = libQuery.trim().toLowerCase();
+  const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
+  return allFlows().filter(f => {
+    if (libDiff && flowDifficulty(f) !== libDiff) return false;
+    if (q && !(f.name.toLowerCase().includes(q) || (f.note || '').toLowerCase().includes(q))) return false;
+    if (libLevel !== 'all') {
+      // "overall" = weakest primary role on the flow itself
+      const worst = Math.min.apply(null, roles.map(r => rank(getLevel(f.id, r, libProfile))));
+      if (LEVELS[worst] !== libLevel) return false;
+    }
+    return true;
+  }).sort((a, b) =>
+    (isGoal(b.id) - isGoal(a.id)) || (isTraining(b.id) - isTraining(a.id)) ||
+    (flowDifficulty(b) - flowDifficulty(a)) || a.name.localeCompare(b.name));
+}
+
+function flowCard(f, roles) {
+  const th = skillThumb(f); // flows reuse the first tutorial thumbnail
+  const goal = isGoal(f.id), tr = isTraining(f.id);
+  let h = '<div class="skill-item flow-card' + (th ? ' has-thumb' : '') + '">' +
+    (th ? '<a href="#/flow/' + f.id + '"><img class="skill-thumb" src="' + esc(th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'"></a>' : '') +
+    '<div class="skill-main"><div class="skill-top">' +
+    '<a class="skill-name" href="#/flow/' + f.id + '">' + esc(f.name) + '</a>' + roleDots(f.id, roles, libProfile) + '</div>' +
+    '<div class="skill-meta">' +
+    (f.washingMachine ? '🌀 washing machine · ' : 'flow · ') +
+    (f.steps.length ? f.steps.length + ' poses · ' : 'sequence not recorded · ') +
+    (goal ? '⭐ goal · ' : '') + (tr ? '✓ in training' : 'not in training') +
+    (flowVerified(f) ? '' : ' · <span class="muted">unverified</span>') +
+    '</div></div>' +
+    '<div class="skill-side">' + diffPips(flowDifficulty(f)) +
+    '<button type="button" class="btn small' + (tr ? ' ghost' : '') + '" onclick="App.toggleTraining(\'' + f.id + '\')">' + (tr ? '✓ Training' : '+ Training') + '</button>' +
+    '<button type="button" class="icon-btn" title="' + (goal ? 'Remove goal' : 'Star as goal') + '" aria-pressed="' + goal + '" onclick="App.toggleGoal(\'' + f.id + '\')">' + (goal ? '⭐' : '☆') + '</button>' +
+    '</div></div>';
+  return h;
+}
+
+function updateFlowList(el) {
+  const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
+  const items = libFlows();
+  if (!items.length) {
+    el.innerHTML = '<div class="empty"><span class="big">🌀</span>No flows match those filters.<br>Try clearing the search.</div>';
+    return;
+  }
+  let h = '<p class="muted small">' + items.length + ' flow' + (items.length === 1 ? '' : 's') +
+    ' · ⭐ goals and ✓ training first</p>';
+  h += '<p class="hint">Tap a flow to drill its sequence. <strong>+ Training</strong> adds it to your active training set; <strong>☆</strong> stars it as a goal.</p>';
+  items.forEach(f => { h += flowCard(f, roles); });
   el.innerHTML = h;
 }
 
@@ -416,12 +528,80 @@ function disciplineLabel(d) {
 }
 
 /* ---------------- Discover ("What next?") ---------------- */
+
+/** My Goals: starred flows with a readiness bar + full component checklist. */
+function myGoalsHtml(roles) {
+  const goals = state.settings.goalFlowIds.map(getFlow).filter(Boolean);
+  let h = '<section><div class="sec-head"><h2>⭐ My goals</h2></div>';
+  if (!goals.length) {
+    h += '<div class="card empty">No goal flows yet.<br>Star a flow <strong>☆</strong> in the 🌀 Flows library or on its page to track it here.</div>';
+  } else {
+    goals.forEach(f => {
+      const { poses, transitions } = flowComponents(f);
+      const comps = poses.concat(transitions);
+      const rd = flowReadiness(f, roles, 'drilling');
+      const worst = Math.min.apply(null, roles.map(r => rank(getLevel(f.id, r, 'you'))));
+      const flowSt = LEVELS[worst];
+      h += '<div class="card goal-card"><div class="sec-head"><h3 style="margin:0"><a href="#/flow/' + f.id + '">' + esc(f.name) + '</a></h3>' +
+        '<span class="pill' + (worst >= rank('solid') ? ' green' : '') + '">' + LEVEL_LABEL[flowSt] + '</span></div>';
+      if (rd) {
+        h += '<div class="bar"><span style="width:' + Math.round(rd.pct * 100) + '%"></span></div>' +
+          '<div class="muted small">' + Math.round(rd.pct * 100) + '% of components at Drilling+ (' + rd.ready + '/' + rd.total + ') · flow itself: ' +
+          LEVEL_LABEL[flowSt] + '</div>' +
+          '<div class="checklist">';
+        comps.forEach(id => {
+          const s = byId.get(id);
+          if (!s) return;
+          const lv = Math.min.apply(null, roles.map(r => rank(getLevel(id, r, 'you'))));
+          const ok = lv >= rank('drilling');
+          h += '<a class="check' + (ok ? ' on' : '') + '" href="#/skill/' + id + '">' +
+            '<span class="check-mark">' + (ok ? '✓' : '○') + '</span>' + esc(s.name) +
+            '<span class="check-lv">' + LEVEL_LABEL[LEVELS[lv]] + '</span></a>';
+        });
+        h += '</div>';
+      } else {
+        h += '<div class="muted small">Sequence unverified — components unknown. Learn the machine, then record its sequence in the Flow Builder to track components here.</div>';
+      }
+      h += '</div>';
+    });
+  }
+  return h + '</section>';
+}
+
+/** Flows to drill: training flows whose components are mostly ready (≥70% drilling+)
+ *  but the flow itself isn't solid yet. Close goal flows rank first. */
+function flowsToDrillHtml(roles) {
+  const rows = [];
+  state.settings.trainingFlowIds.map(getFlow).filter(f => f && f.steps.length >= 2).forEach(f => {
+    const solid = roles.every(r => rank(getLevel(f.id, r, 'you')) >= rank('solid'));
+    if (solid) return; // already solid — nothing to drill
+    const rd = flowReadiness(f, roles, 'drilling');
+    if (!rd || rd.pct < 0.7) return;
+    rows.push({ f, rd });
+  });
+  if (!rows.length) return '';
+  rows.sort((a, b) => (isGoal(b.f.id) - isGoal(a.f.id)) || (b.rd.pct - a.rd.pct));
+  let h = '<section><div class="sec-head"><h2>🌀 Flows to drill</h2></div>';
+  h += '<div class="card"><p class="muted small" style="margin-top:0">Training flows whose parts are mostly ready (70%+ of components at Drilling+) but the flow itself isn\'t solid yet. ⭐ goals first.</p>' +
+    '<div class="skill-list">';
+  rows.forEach(({ f, rd }) => {
+    h += '<div class="skill-item"><div class="skill-main"><a class="skill-name" href="#/flow/' + f.id + '">' + esc(f.name) + '</a>' +
+      '<div class="bar"><span style="width:' + Math.round(rd.pct * 100) + '%"></span></div>' +
+      '<div class="muted small">' + Math.round(rd.pct * 100) + '% of components at Drilling+ (' + rd.ready + '/' + rd.total + ')' +
+      (isGoal(f.id) ? ' · ⭐ goal' : '') + '</div></div>' +
+      '<div class="skill-side">' + diffPips(flowDifficulty(f)) + roleDots(f.id, roles, 'you') + '</div></div>';
+  });
+  return h + '</div></div></section>';
+}
+
 function renderDiscover(view) {
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
   const roleNames = roles.map(r => ROLE_LABEL[r]).join(' + ');
 
   let h = '<h1>What next?</h1>';
   h += '<p class="muted">Based on your <strong>' + esc(roleNames) + '</strong> progress (change primary roles in 💾 Data).</p>';
+
+  h += myGoalsHtml(roles) + flowsToDrillHtml(roles);
 
   // --- Ready to learn: transitions whose endpoints are drilling+, transition not solid ---
   const ready = window.SEED.transitions.filter(t =>
@@ -539,10 +719,24 @@ function renderFlowDetail(view, id) {
 
   let h = '<a class="back" href="#/builder">← Builder</a>';
   h += '<h1>' + esc(f.name) + '</h1>';
-  h += '<div class="row wrap">' +
+  const goal = isGoal(f.id), tr = isTraining(f.id);
+  h += '<div class="flow-actions">' +
+    '<button type="button" class="btn small' + (tr ? ' ghost' : '') + '" onclick="App.toggleTraining(\'' + f.id + '\')">' + (tr ? '✓ In your training' : '+ Add to training') + '</button>' +
+    '<button type="button" class="btn small' + (goal ? ' ghost' : '') + '" onclick="App.toggleGoal(\'' + f.id + '\')">' + (goal ? '⭐ Goal' : '☆ Set as goal') + '</button>' +
     (f.washingMachine ? '<span class="pill green">🌀 washing machine</span>' : '<span class="pill grey">flow</span>') +
-    '<span class="pill">' + (f.origin === 'user' ? 'created by you' : 'seed library') + '</span></div>';
+    '<span class="pill">' + (f.origin === 'user' ? 'created by you' : 'seed library') + '</span>' +
+    (flowVerified(f) ? '' : '<span class="pill amber">sequence unverified</span>') + '</div>';
   if (f.note) h += '<p class="muted">' + esc(f.note) + '</p>';
+
+  h += '<div class="card"><h3 style="margin-top:0">Your progress on this flow</h3>' +
+    stepper(f.id, 'you');
+  const rd = flowReadiness(f, roles, 'drilling');
+  if (rd) {
+    h += '<div class="bar" style="margin-top:10px"><span style="width:' + Math.round(rd.pct * 100) + '%"></span></div>' +
+      '<div class="muted small">' + Math.round(rd.pct * 100) + '% of components at Drilling+ (' + rd.ready + '/' + rd.total + ') for ' +
+      esc(roles.map(r => ROLE_LABEL[r]).join(' + ')) + '</div>';
+  }
+  h += '<p class="hint">Track the flow itself — separate from its poses and transitions. Drilling every part doesn\'t mean the whole machine flows.</p></div>';
 
   if (!f.steps.length) {
     h += '<div class="empty"><span class="big">🌀</span>Sequence not recorded yet.<br>Learn it, then rebuild it in the Flow Builder to track it properly.</div>';
@@ -667,14 +861,18 @@ function renderLog(view) {
   h += '<div class="role-label">Confidence</div><div class="segmented" id="log-conf">' +
     [1, 2, 3, 4, 5].map(n => '<button type="button" class="' + (n === logConfidence ? 'on' : '') + '" onclick="App.setConfidence(' + n + ')">' + n + '</button>').join('') + '</div>';
 
-  h += '<div class="role-label">Skills drilled</div>';
-  h += '<div class="check-grid">';
+  h += '<div class="role-label">Skills drilled — poses, transitions & flows</div>';
+  h += '<div class="muted small">Poses</div><div class="check-grid">';
   window.SEED.poses.forEach(p => {
     h += '<label class="check"><input type="checkbox" name="log-skill" value="' + p.id + '"> ' + esc(p.name) + '</label>';
   });
-  h += '</div><div class="check-grid">';
+  h += '</div><div class="muted small">Transitions</div><div class="check-grid">';
   window.SEED.transitions.forEach(t => {
     h += '<label class="check"><input type="checkbox" name="log-skill" value="' + t.id + '"> ' + esc(t.name) + '</label>';
+  });
+  h += '</div><div class="muted small">Flows & washing machines</div><div class="check-grid">';
+  allFlows().forEach(f => {
+    h += '<label class="check"><input type="checkbox" name="log-skill" value="' + f.id + '"> 🌀 ' + esc(f.name) + '</label>';
   });
   h += '</div>';
   h += '<label class="field" for="log-notes">Notes</label><textarea id="log-notes" placeholder="What worked? What needs work?"></textarea>';
@@ -805,16 +1003,52 @@ window.App = {
       tutorials: []
     };
     state.flows.push(flow);
+    if (!state.settings.trainingFlowIds.includes(flow.id)) state.settings.trainingFlowIds.push(flow.id);
     persist();
     draftSteps = [];
-    toast(flow.washingMachine ? '🌀 Saved as a washing machine!' : 'Flow saved!');
+    toast(flow.washingMachine ? '🌀 Saved as a washing machine — added to your training!' : 'Flow saved — added to your training!');
     location.hash = '#/flow/' + flow.id;
   },
   deleteFlow(id) {
     if (!confirm('Delete this flow?')) return;
     state.flows = state.flows.filter(f => f.id !== id);
+    state.settings.trainingFlowIds = state.settings.trainingFlowIds.filter(x => x !== id);
+    state.settings.goalFlowIds = state.settings.goalFlowIds.filter(x => x !== id);
     persist();
     location.hash = '#/builder';
+  },
+
+  /* flow training + goals */
+  toggleTraining(flowId) {
+    const arr = state.settings.trainingFlowIds;
+    const i = arr.indexOf(flowId);
+    if (i >= 0) {
+      arr.splice(i, 1);
+      // a flow that leaves training also leaves goals (goal ⊆ training)
+      const g = state.settings.goalFlowIds.indexOf(flowId);
+      if (g >= 0) state.settings.goalFlowIds.splice(g, 1);
+      toast('Removed from your training.');
+    } else {
+      arr.push(flowId);
+      toast('Added to your training ✓');
+    }
+    persist();
+    render();
+  },
+  toggleGoal(flowId) {
+    const arr = state.settings.goalFlowIds;
+    const i = arr.indexOf(flowId);
+    if (i >= 0) {
+      arr.splice(i, 1);
+      toast('Goal removed.');
+    } else {
+      arr.push(flowId);
+      // starring a flow as a goal puts it in training too
+      if (!state.settings.trainingFlowIds.includes(flowId)) state.settings.trainingFlowIds.push(flowId);
+      toast('⭐ Set as a goal — added to your training.');
+    }
+    persist();
+    render();
   },
 
   /* jam */
@@ -883,6 +1117,7 @@ window.App = {
         const data = DB.importJSON(reader.result);
         data.version = window.SEED.version;
         state = data;
+        pruneFlowLists();
         persist();
         toast('Backup imported!');
         render();
@@ -917,6 +1152,12 @@ async function init() {
     state.version = window.SEED.version;
     if (!Array.isArray(state.flows)) state.flows = [];
     if (!Array.isArray(state.practiceLogs)) state.practiceLogs = [];
+    // stored.settings replaces fresh settings wholesale — backfill new arrays,
+    // and drop references to flows that no longer exist.
+    if (!state.settings || typeof state.settings !== 'object') state.settings = freshState().settings;
+    if (!Array.isArray(state.settings.trainingFlowIds)) state.settings.trainingFlowIds = [];
+    if (!Array.isArray(state.settings.goalFlowIds)) state.settings.goalFlowIds = [];
+    pruneFlowLists();
   }
   window.addEventListener('hashchange', render);
   render();

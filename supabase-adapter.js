@@ -53,7 +53,7 @@
   function blankState() {
     return {
       version: (window.SEED && window.SEED.version) || '1.0.0',
-      settings: { name: '', primaryRoles: ['base', 'flyer'] },
+      settings: { name: '', primaryRoles: ['base', 'flyer'], trainingFlowIds: [], goalFlowIds: [] },
       progress: {},
       partnerProgress: {},
       flows: [],
@@ -71,7 +71,9 @@
     var st = s.settings || {};
     var pr = st.primaryRoles || [];
     var defRoles = pr.length === 2 && pr.indexOf('base') !== -1 && pr.indexOf('flyer') !== -1;
-    return noProg && noPartner && noFlows && noLogs && !st.name && defRoles;
+    var noTrain = !st.trainingFlowIds || !st.trainingFlowIds.length;
+    var noGoals = !st.goalFlowIds || !st.goalFlowIds.length;
+    return noProg && noPartner && noFlows && noLogs && !st.name && defRoles && noTrain && noGoals;
   }
 
   /* ---------------- config ---------------- */
@@ -379,7 +381,7 @@
   async function fetchCloud(uid) {
     var q = 'user_id=eq.' + encodeURIComponent(uid);
     var results = await Promise.all([
-      api('GET', '/rest/v1/profiles?select=id,display_name,primary_roles,updated_at&id=eq.' + encodeURIComponent(uid)),
+      api('GET', '/rest/v1/profiles?select=id,display_name,primary_roles,training_flow_ids,goal_flow_ids,updated_at&id=eq.' + encodeURIComponent(uid)),
       api('GET', '/rest/v1/progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/partner_progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/practice_logs?select=id,date,partner,role,skill_ids,confidence,notes,updated_at&' + q),
@@ -403,6 +405,8 @@
       id: uid,
       display_name: st.name || null,
       primary_roles: st.primaryRoles || ['base', 'flyer'],
+      training_flow_ids: st.trainingFlowIds || [],
+      goal_flow_ids: st.goalFlowIds || [],
       updated_at: meta.settingsTs || t
     }, UPSERT);
 
@@ -465,6 +469,8 @@
     if (cloud.prof) {
       s.settings.name = cloud.prof.display_name || '';
       s.settings.primaryRoles = cloud.prof.primary_roles || ['base', 'flyer'];
+      s.settings.trainingFlowIds = cloud.prof.training_flow_ids || [];
+      s.settings.goalFlowIds = cloud.prof.goal_flow_ids || [];
       meta.settingsTs = cloud.prof.updated_at;
     }
     cloud.prog.forEach(function (r) {
@@ -620,15 +626,15 @@
     var mst = merged.settings || {};
     if (cloud.prof) {
       if (sts && sts >= cloud.prof.updated_at) {
-        ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], updated_at: sts };
+        ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], training_flow_ids: mst.trainingFlowIds || [], goal_flow_ids: mst.goalFlowIds || [], updated_at: sts };
       } else {
         // Cloud newer — or local predates sync (unknown ts): cloud wins (documented).
-        merged.settings = { name: cloud.prof.display_name || '', primaryRoles: cloud.prof.primary_roles || ['base', 'flyer'] };
+        merged.settings = { name: cloud.prof.display_name || '', primaryRoles: cloud.prof.primary_roles || ['base', 'flyer'], trainingFlowIds: cloud.prof.training_flow_ids || [], goalFlowIds: cloud.prof.goal_flow_ids || [] };
         meta.settingsTs = cloud.prof.updated_at;
       }
     } else {
       var puts = sts || t;
-      ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], updated_at: puts };
+      ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], training_flow_ids: mst.trainingFlowIds || [], goal_flow_ids: mst.goalFlowIds || [], updated_at: puts };
       if (!sts) meta.settingsTs = puts;
     }
 

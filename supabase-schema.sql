@@ -28,8 +28,15 @@ create table if not exists profiles (
   updated_at    timestamptz not null default now()
 );
 
+-- v1.1: flow training set + goal stars live on the profile (flow *progress*
+-- needs no schema change — flow ids are just more rows in `progress`).
+alter table profiles add column if not exists training_flow_ids text[] not null default '{}';
+alter table profiles add column if not exists goal_flow_ids text[] not null default '{}';
+
 -- Per-skill, per-role progress. skill_id matches the ids in data.js
--- (poses and transitions share one id namespace, e.g. 'bird', 't_bird_to_throne').
+-- (poses, transitions and flows share one id namespace, e.g. 'bird',
+-- 't_bird_to_throne', 'f_ninja_star'). Flow progress needs no schema change:
+-- a flow's id is just another row here.
 create table if not exists progress (
   user_id    uuid not null references profiles (id) on delete cascade,
   skill_id   text not null,

@@ -24,7 +24,7 @@
  * ========================================================================== */
 
 window.SEED = {
-  version: "1.0.0",
+  version: "1.1.0",
 
   /* ------------------------------------------------------------------ */
   /* POSES (L-base only for v1)                                         */
@@ -716,7 +716,7 @@ window.SEED = {
       transitions: [],
       washingMachine: true,
       origin: "seed",
-      note: "Sequence unverified — many variations exist. Learn it from a teacher or the references, then use the Flow Builder to record your version.",
+      note: "Sequence unverified — many variations exist. Learn it from a teacher or the references, then use the Flow Builder to record your version. Acrodemy's classic breakdown is video-only: https://acrodemy.eu/2025/03/15/catherines-wheel/.",
       tutorials: [
         { title: "100 most popular washing machines (incl. Catherine's Wheel)", url: "https://acrodemy.eu/category/acroyoga-sequence/intermediate-flows/100-most-popular-washing-machines/", creator: "Acrodemy" }
       ]
@@ -804,6 +804,54 @@ window.SEED = {
       note: "Sequence unverified — appears at 2:15 in the Washing Machines Series 1 video. Learn it from the video, then use the Flow Builder to record your version.",
       tutorials: [
         { title: "AcroYoga Washing Machines: Series 1 (Mystery Box at 2:15)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
+      ]
+    },
+    {
+      id: "f_musical_chairs",
+      name: "Musical Chairs",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — appears at 1:39 in the Washing Machines Series 1 video. Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "AcroYoga Washing Machines: Series 1 (Musical Chairs at 1:39)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
+      ]
+    },
+    {
+      id: "f_reverse_star_tumbler",
+      name: "Reverse Star Tumbler",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — the mirror of Star Tumbler, appears at 0:55 in the Washing Machines Series 1 video. Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "AcroYoga Washing Machines: Series 1 (Reverse Star Tumbler at 0:55)", url: "https://www.youtube.com/watch?v=95Z0FAPIZGg", videoId: "95Z0FAPIZGg", creator: "Lauren Clausen & Scott Cooper" }
+      ]
+    },
+    {
+      id: "f_slacker_cycle",
+      name: "Slacker Cycle",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — a slackro washing machine by YogaSlackers (Sam Salwei & Raquel Hernández-Cruz). Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "Slacker Cycle • A Slackro Washing Machine", url: "https://www.youtube.com/watch?v=z61UT-gF-i4", videoId: "z61UT-gF-i4", creator: "YogaSlackers" }
+      ]
+    },
+    {
+      id: "f_high_barrel_roll",
+      name: "High Barrel Roll",
+      steps: [],
+      transitions: [],
+      washingMachine: true,
+      origin: "research",
+      note: "Sequence unverified — the bigger brother of Barrel Roll, named in Jacob Brown’s 'Acro Washing Machine Skill Test' as one of the three washing machines used to test readiness for his intermediate workshops. Learn it from the video, then use the Flow Builder to record your version.",
+      tutorials: [
+        { title: "Acro Washing Machine Skill Test (incl. High Barrel Roll)", url: "https://www.youtube.com/watch?v=Hz49xyPPyZY", videoId: "Hz49xyPPyZY", creator: "Jacob Brown" }
       ]
     }
   ]
