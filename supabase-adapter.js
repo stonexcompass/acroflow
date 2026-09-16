@@ -274,6 +274,8 @@
       transitions: (f.transitions || []).map(function (t) { return t || null; }),
       washing_machine: !!f.washingMachine,
       note: f.note || null,
+      incomplete: !!f.incomplete,
+      tutorials: f.tutorials || [],
       updated_at: ts
     };
   }
@@ -289,7 +291,8 @@
       washingMachine: !!r.washing_machine,
       origin: 'user',
       note: r.note || '',
-      tutorials: []
+      incomplete: !!r.incomplete,
+      tutorials: r.tutorials || []
     };
   }
 
@@ -316,7 +319,7 @@
   function flowSigs(flows) {
     var m = {};
     (flows || []).forEach(function (f) {
-      m[f.id] = JSON.stringify([f.name, f.steps, f.transitions, f.washingMachine, f.note]);
+      m[f.id] = JSON.stringify([f.name, f.steps, f.transitions, f.washingMachine, f.note, !!f.incomplete, f.tutorials]);
     });
     return m;
   }
@@ -385,7 +388,7 @@
       api('GET', '/rest/v1/progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/partner_progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/practice_logs?select=id,date,partner,role,skill_ids,confidence,notes,updated_at&' + q),
-      api('GET', '/rest/v1/user_flows?select=id,name,steps,transitions,washing_machine,note,updated_at&' + q)
+      api('GET', '/rest/v1/user_flows?select=id,name,steps,transitions,washing_machine,note,incomplete,tutorials,updated_at&' + q)
     ]);
     return {
       prof: (results[0] && results[0][0]) || null,

@@ -82,6 +82,8 @@ create table if not exists user_flows (
   transitions     text[] not null default '{}', -- transition ids aligned to steps
   washing_machine boolean not null default false,
   note            text,
+  incomplete      boolean not null default false, -- draft: added from video, steps not mapped yet
+  tutorials       jsonb not null default '[]',   -- [{title,url,videoId,creator}]
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );

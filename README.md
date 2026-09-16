@@ -65,8 +65,11 @@ Everything lives under one localStorage key, **`acroflow.v1`**:
   tracked separately. Only non-`unstarted` entries are stored.
 - `partnerProgress` — same shape, for the Jam partner profile on this device.
 - `flows` — user-built flows: `{ id, name, steps:[poseIds],
-  transitions:[ids|null aligned], washingMachine, origin:'user', note }`.
-  Seed flows live in `data.js`, not here.
+  transitions:[ids|null aligned], washingMachine, origin:'user', note,
+  tutorials:[{title,url,videoId,creator}], incomplete }`.
+  `incomplete:true` marks a draft added from a YouTube link (steps not mapped
+  yet — see "Add a flow from YouTube" below); it's cleared once ≥2 steps are
+  saved in the Builder. Seed flows live in `data.js`, not here.
 - `practiceLogs` — `[{ id, date, partner, role, skills:[skillIds],
   confidence:1-5, notes }]`. `skills` can hold pose, transition **and flow**
   ids — the log form groups them into poses / transitions / flows & washing
@@ -176,7 +179,7 @@ The URL and key are stored only in your browser's localStorage (under
 | `progress` | `progress` | one row per skill × role; sparse (no `unstarted`). Pose, transition **and flow** ids share this table — no schema change needed to track machines |
 | `partner_progress` | `partnerProgress` | your notes about the jam partner |
 | `practice_logs` | `practiceLogs` | local `l_…` ids map to UUIDs in a local id-map |
-| `user_flows` | `flows` | same UUID id-mapping; `transitions` NULLs preserved |
+| `user_flows` | `flows` | same UUID id-mapping; `transitions` NULLs preserved; `incomplete` + `tutorials` sync (v1.2 schema adds the two columns) |
 
 Auth is email + password via Supabase Auth REST (`/auth/v1/signup`,
 `/auth/v1/token?grant_type=password`); the session is refreshed
@@ -221,3 +224,20 @@ server-side editing.
   tutorials (Acro Adventure, AcroNoga, YogaSlackers, AcroRoots, Ulu Yoga,
   Acro Connection, Acroloco, Yogafreq, Super Dave, Lauren Clausen &
   Scott Cooper, Simons Akroyoga).
+- **Add a flow from YouTube**: the 🌀 Flows tab has an "Add from YouTube"
+  button. Paste a video URL (watch, youtu.be, shorts, embed and live links
+  all work) — the app pulls the title/creator via YouTube oEmbed (no API
+  key), or falls back to your typed name / "Untitled flow" when offline.
+  The flow is saved as an **unfinished draft** (`incomplete:true`, no steps,
+  auto-added to training) with the video as its tutorial. Drafts get the
+  standard unfinished treatment everywhere — dashed border, reduced
+  opacity, grayscale thumbnails, italic names, a "Needs steps" pill and a
+  prominent **"Add steps in Builder"** CTA — and are excluded from "Flows
+  to drill" / readiness math until ≥2 steps are mapped. User flows get
+  **"Edit steps in Builder"** on their detail page (loads the draft,
+  saves in place — same id, keeps name/tutorials/training/goals, clears
+  `incomplete`); built-in flows get **"Make my own version"** instead
+  (saves a new "<name> (my version)" user flow; seed data is never
+  mutated). The Builder shows an "Editing …" header with a cancel option
+  while an edit is loaded. `incomplete` and `tutorials` sync through the
+  `user_flows` table (v1.2 schema adds the two columns).

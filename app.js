@@ -299,6 +299,44 @@ function skillThumb(s) {
   return t ? ytThumb(t) : null;
 }
 
+/** True when a flow is an unfinished draft (added from a video, steps not mapped yet). */
+function isDraftFlow(f) {
+  return !!f && !!f.incomplete;
+}
+
+/**
+ * Extract an 11-char YouTube video id from common URL shapes:
+ * youtube.com/watch?v=…, youtu.be/…, youtube.com/shorts/…, /embed/…, /live/…
+ * Returns null for anything else.
+ */
+function parseYouTubeId(url) {
+  const u = (url || '').trim();
+  const m = u.match(/(?:youtube\.com\/(?:watch\?[^#\s]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/);
+  return m ? m[1] : null;
+}
+
+function slugify(s) {
+  return ((s || 'flow').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)) || 'flow';
+}
+
+/**
+ * YouTube oEmbed lookup for a video page URL → {title, author_name} or null.
+ * Never throws and never blocks: resolves null when fetch is unavailable,
+ * the request fails, or it takes longer than ~6s (offline).
+ */
+function oembedLookup(pageUrl) {
+  return new Promise((resolve) => {
+    if (typeof fetch !== 'function') { resolve(null); return; }
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; clearTimeout(timer); resolve(v); } };
+    const timer = setTimeout(() => finish(null), 6000);
+    fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(pageUrl) + '&format=json')
+      .then(r => (r && r.ok) ? r.json() : null)
+      .then(j => finish(j && j.title ? j : null))
+      .catch(() => finish(null));
+  });
+}
+
 function tutorialList(tuts) {
   if (!tuts || !tuts.length) return '<p class="muted">No tutorials linked yet — ask your community for a good one.</p>';
   let h = '';
@@ -361,6 +399,7 @@ function render() {
 /* ---------------- Library ---------------- */
 let libQuery = '', libType = 'all', libDiff = 0, libLevel = 'all';
 let libProfile = 'you'; // 'you' | 'partner'
+let ytFormOpen = false; // "add flow from YouTube" form visibility
 
 function libFiltered() {
   const q = libQuery.trim().toLowerCase();
@@ -455,16 +494,20 @@ function libFlows() {
 function flowCard(f, roles) {
   const th = skillThumb(f); // flows reuse the first tutorial thumbnail
   const goal = isGoal(f.id), tr = isTraining(f.id);
-  let h = '<div class="skill-item flow-card' + (th ? ' has-thumb' : '') + '">' +
+  const draft = isDraftFlow(f);
+  let h = '<div class="skill-item flow-card' + (th ? ' has-thumb' : '') + (draft ? ' incomplete' : '') + '">' +
     (th ? '<a href="#/flow/' + f.id + '"><img class="skill-thumb" src="' + esc(th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'"></a>' : '') +
     '<div class="skill-main"><div class="skill-top">' +
     '<a class="skill-name" href="#/flow/' + f.id + '">' + esc(f.name) + '</a>' + roleDots(f.id, roles, libProfile) + '</div>' +
     '<div class="skill-meta">' +
     (f.washingMachine ? '🌀 washing machine · ' : 'flow · ') +
-    (f.steps.length ? f.steps.length + ' poses · ' : 'sequence not recorded · ') +
+    (draft ? '<span class="pill amber">🧩 Needs steps</span> ' :
+      (f.steps.length ? f.steps.length + ' poses · ' : 'sequence not recorded · ')) +
     (goal ? '⭐ goal · ' : '') + (tr ? '✓ in training' : 'not in training') +
-    (flowVerified(f) ? '' : ' · <span class="muted">unverified</span>') +
-    '</div></div>' +
+    ((flowVerified(f) || draft) ? '' : ' · <span class="muted">unverified</span>') +
+    '</div>' +
+    (draft ? '<button type="button" class="btn small" style="margin-top:8px" onclick="App.editFlowInBuilder(\'' + f.id + '\')">🧩 Add steps in Builder</button>' : '') +
+    '</div>' +
     '<div class="skill-side">' + diffPips(flowDifficulty(f)) +
     '<button type="button" class="btn small' + (tr ? ' ghost' : '') + '" onclick="App.toggleTraining(\'' + f.id + '\')">' + (tr ? '✓ Training' : '+ Training') + '</button>' +
     '<button type="button" class="icon-btn" title="' + (goal ? 'Remove goal' : 'Star as goal') + '" aria-pressed="' + goal + '" onclick="App.toggleGoal(\'' + f.id + '\')">' + (goal ? '⭐' : '☆') + '</button>' +
@@ -472,14 +515,31 @@ function flowCard(f, roles) {
   return h;
 }
 
+function ytFormHtml() {
+  return '<div class="card"><h3 style="margin-top:0">📼 Add a flow from YouTube</h3>' +
+    '<p class="muted small">Paste a video link (a tutorial you found, a Jacob Brown breakdown…). ' +
+    'We\'ll save it as an <strong>unfinished draft</strong> — you map its steps in the Builder afterwards.</p>' +
+    '<label class="field" for="yt-url">YouTube URL</label>' +
+    '<input type="text" id="yt-url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…">' +
+    '<label class="field" for="yt-name">Name (optional — uses the video title when blank)</label>' +
+    '<input type="text" id="yt-name" maxlength="60" placeholder="e.g. Reverse Star Tumbler">' +
+    '<label class="check" style="margin-top:10px"><input type="checkbox" id="yt-wm" checked> Washing machine</label>' +
+    '<div class="row wrap" style="margin-top:10px">' +
+    '<button type="button" class="btn" onclick="App.submitYouTubeFlow()">Add flow</button>' +
+    '<button type="button" class="btn ghost" onclick="App.toggleYtForm()">Cancel</button></div></div>';
+}
+
 function updateFlowList(el) {
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
   const items = libFlows();
+  let h = '<div class="row wrap" style="margin-bottom:6px">' +
+    '<button type="button" class="btn small" onclick="App.toggleYtForm()">＋ Add from YouTube</button></div>';
+  if (ytFormOpen) h += ytFormHtml();
   if (!items.length) {
-    el.innerHTML = '<div class="empty"><span class="big">🌀</span>No flows match those filters.<br>Try clearing the search.</div>';
+    el.innerHTML = h + '<div class="empty"><span class="big">🌀</span>No flows match those filters.<br>Try clearing the search.</div>';
     return;
   }
-  let h = '<p class="muted small">' + items.length + ' flow' + (items.length === 1 ? '' : 's') +
+  h += '<p class="muted small">' + items.length + ' flow' + (items.length === 1 ? '' : 's') +
     ' · ⭐ goals and ✓ training first</p>';
   h += '<p class="hint">Tap a flow to drill its sequence. <strong>+ Training</strong> adds it to your active training set; <strong>☆</strong> stars it as a goal.</p>';
   items.forEach(f => { h += flowCard(f, roles); });
@@ -559,6 +619,10 @@ function myGoalsHtml(roles) {
             '<span class="check-lv">' + LEVEL_LABEL[LEVELS[lv]] + '</span></a>';
         });
         h += '</div>';
+      } else if (f.incomplete) {
+        h += '<div class="card draft-note" style="margin:10px 0 0"><strong>🧩 Needs steps.</strong> ' +
+          'Added from a video — map its sequence before tracking components here. ' +
+          '<div style="margin-top:8px"><button type="button" class="btn small" onclick="App.editFlowInBuilder(\'' + f.id + '\')">🧩 Add steps in Builder</button></div></div>';
       } else {
         h += '<div class="muted small">Sequence unverified — components unknown. Learn the machine, then record its sequence in the Flow Builder to track components here.</div>';
       }
@@ -572,7 +636,9 @@ function myGoalsHtml(roles) {
  *  but the flow itself isn't solid yet. Close goal flows rank first. */
 function flowsToDrillHtml(roles) {
   const rows = [];
-  state.settings.trainingFlowIds.map(getFlow).filter(f => f && f.steps.length >= 2).forEach(f => {
+  // Drafts (added from a video, steps not mapped) are excluded until they have
+  // a real sequence — flowReadiness() would return null for them anyway.
+  state.settings.trainingFlowIds.map(getFlow).filter(f => f && !f.incomplete && f.steps.length >= 2).forEach(f => {
     const solid = roles.every(r => rank(getLevel(f.id, r, 'you')) >= rank('solid'));
     if (solid) return; // already solid — nothing to drill
     const rd = flowReadiness(f, roles, 'drilling');
@@ -648,6 +714,8 @@ function renderDiscover(view) {
 /* ---------------- Flow Builder ---------------- */
 let draftSteps = [];   // pose ids, in order
 let builderQuery = '';
+let editingFlowId = null; // user flow id being edited in place (null = new flow)
+let editingCopyOf = null; // seed flow id being copied as "my version" (null = not a copy)
 
 function renderBuilder(view) {
   const q = builderQuery.trim().toLowerCase();
@@ -655,17 +723,38 @@ function renderBuilder(view) {
     .filter(p => !q || (p.name + ' ' + (p.aliases || []).join(' ')).toLowerCase().includes(q))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  let h = '<h1>Flow builder</h1>';
-  h += '<p class="muted">Tap poses to append them. We\'ll resolve each link to a known transition — <strong>?</strong> means nobody has named that link yet.</p>';
+  const editF = editingFlowId ? getFlow(editingFlowId) : null;
+  const copyF = editingCopyOf ? getFlow(editingCopyOf) : null;
+  // Editing state can go stale (flow deleted on another render) — drop it.
+  if (editingFlowId && !editF) { editingFlowId = null; }
+  if (editingCopyOf && !copyF) { editingCopyOf = null; }
+
+  let h = '';
+  if (editingFlowId && editF) {
+    h += '<h1>Editing ' + esc(editF.name) + '</h1>';
+    h += '<p class="muted">Update the steps below, then save. The flow keeps its name, tutorials, and training/goal membership. ' +
+      '<button type="button" class="btn ghost small-btn" onclick="App.cancelBuilderEdit()">Cancel editing</button></p>';
+  } else if (editingCopyOf && copyF) {
+    h += '<h1>My version of ' + esc(copyF.name) + '</h1>';
+    h += '<p class="muted">Tweak the sequence — saving creates <strong>your own copy</strong>; the built-in flow is never changed. ' +
+      '<button type="button" class="btn ghost small-btn" onclick="App.cancelBuilderEdit()">Cancel</button></p>';
+  } else {
+    h += '<h1>Flow builder</h1>';
+    h += '<p class="muted">Tap poses to append them. We\'ll resolve each link to a known transition — <strong>?</strong> means nobody has named that link yet.</p>';
+  }
 
   // draft sequence
   h += '<div class="card"><h3 style="margin-top:0">Your sequence</h3><div id="draft-seq">';
   h += draftSeqHTML();
   h += '</div>';
-  h += '<label class="field" for="flow-name">Flow name</label>';
-  h += '<input type="text" id="flow-name" placeholder="e.g. My Sunday jam flow" maxlength="60">';
+  if (!(editingFlowId && editF)) {
+    h += '<label class="field" for="flow-name">Flow name</label>';
+    h += '<input type="text" id="flow-name" placeholder="e.g. My Sunday jam flow" maxlength="60" value="' +
+      esc(editingCopyOf && copyF ? copyF.name + ' (my version)' : '') + '">';
+  }
   h += '<div class="row wrap" style="margin-top:10px">';
-  h += '<button type="button" class="btn" onclick="App.saveFlow()" ' + (draftSteps.length < 2 ? 'disabled' : '') + '>Save flow</button>';
+  h += '<button type="button" class="btn" onclick="App.saveFlow()" ' + (draftSteps.length < 2 ? 'disabled' : '') + '>' +
+    (editingFlowId ? 'Save steps' : (editingCopyOf ? 'Save my version' : 'Save flow')) + '</button>';
   h += '<button type="button" class="btn ghost" onclick="App.clearDraft()">Clear</button></div></div>';
 
   // pose picker
@@ -682,8 +771,10 @@ function renderBuilder(view) {
   h += '<h2>Saved flows</h2>';
   const flows = allFlows();
   flows.forEach(f => {
-    h += '<a class="skill-item" href="#/flow/' + f.id + '"><div class="skill-top">' +
+    const draft = isDraftFlow(f);
+    h += '<a class="skill-item' + (draft ? ' incomplete' : '') + '" href="#/flow/' + f.id + '"><div class="skill-top">' +
       '<span class="skill-name">' + esc(f.name) + '</span>' +
+      (draft ? '<span class="pill amber">🧩 Needs steps</span>' : '') +
       (f.washingMachine ? '<span class="pill green">🌀 washing machine</span>' : '<span class="pill grey">flow</span>') +
       (f.origin === 'user' ? '<span class="pill">yours</span>' : '') + '</div>' +
       '<div class="skill-meta">' + (f.steps.length ? f.steps.length + ' poses' : 'sequence not recorded yet') + '</div></a>';
@@ -720,12 +811,21 @@ function renderFlowDetail(view, id) {
   let h = '<a class="back" href="#/builder">← Builder</a>';
   h += '<h1>' + esc(f.name) + '</h1>';
   const goal = isGoal(f.id), tr = isTraining(f.id);
+  const draft = isDraftFlow(f);
+  if (draft) {
+    h += '<div class="card draft-note"><strong>🧩 Needs steps.</strong> ' +
+      'This was added from a video — its steps haven\'t been mapped yet. Watch the tutorial, then tap below to build the sequence pose by pose.' +
+      '<div style="margin-top:10px"><button type="button" class="btn" onclick="App.editFlowInBuilder(\'' + f.id + '\')">🧩 Add steps in Builder</button></div></div>';
+  }
   h += '<div class="flow-actions">' +
     '<button type="button" class="btn small' + (tr ? ' ghost' : '') + '" onclick="App.toggleTraining(\'' + f.id + '\')">' + (tr ? '✓ In your training' : '+ Add to training') + '</button>' +
     '<button type="button" class="btn small' + (goal ? ' ghost' : '') + '" onclick="App.toggleGoal(\'' + f.id + '\')">' + (goal ? '⭐ Goal' : '☆ Set as goal') + '</button>' +
     (f.washingMachine ? '<span class="pill green">🌀 washing machine</span>' : '<span class="pill grey">flow</span>') +
     '<span class="pill">' + (f.origin === 'user' ? 'created by you' : 'seed library') + '</span>' +
-    (flowVerified(f) ? '' : '<span class="pill amber">sequence unverified</span>') + '</div>';
+    (draft ? '<span class="pill amber">🧩 needs steps</span>' : (flowVerified(f) ? '' : '<span class="pill amber">sequence unverified</span>')) +
+    (f.origin === 'user' && !draft ? '<button type="button" class="btn small ghost" onclick="App.editFlowInBuilder(\'' + f.id + '\')">🧩 Edit steps</button>' : '') +
+    (f.origin !== 'user' ? '<button type="button" class="btn small ghost" onclick="App.copyFlowToBuilder(\'' + f.id + '\')">📋 Make my own version</button>' : '') +
+    '</div>';
   if (f.note) h += '<p class="muted">' + esc(f.note) + '</p>';
 
   h += '<div class="card"><h3 style="margin-top:0">Your progress on this flow</h3>' +
@@ -739,7 +839,9 @@ function renderFlowDetail(view, id) {
   h += '<p class="hint">Track the flow itself — separate from its poses and transitions. Drilling every part doesn\'t mean the whole machine flows.</p></div>';
 
   if (!f.steps.length) {
-    h += '<div class="empty"><span class="big">🌀</span>Sequence not recorded yet.<br>Learn it, then rebuild it in the Flow Builder to track it properly.</div>';
+    if (!draft) {
+      h += '<div class="empty"><span class="big">🌀</span>Sequence not recorded yet.<br>Learn it, then rebuild it in the Flow Builder to track it properly.</div>';
+    }
   } else {
     h += '<div class="seq">';
     f.steps.forEach((pid, i) => {
@@ -763,7 +865,7 @@ function renderFlowDetail(view, id) {
   if (f.origin === 'user') {
     h += '<button type="button" class="btn danger" onclick="App.deleteFlow(\'' + f.id + '\')">Delete this flow</button>';
   }
-  view.innerHTML = h;
+  view.innerHTML = '<div class="flow-detail' + (draft ? ' incomplete' : '') + '">' + h + '</div>';
 }
 
 /* ---------------- Jam (compare two profiles) ---------------- */
@@ -933,6 +1035,13 @@ function renderData(view) {
 }
 
 /* ---------------- App actions (wired from inline onclick handlers) ---------------- */
+
+/** Navigate to a hash, re-rendering even when we're already there. */
+function goHash(h) {
+  if (location.hash === h) render();
+  else location.hash = h;
+}
+
 window.App = {
   /* navigation re-render */
   rerender() { render(); },
@@ -983,39 +1092,135 @@ window.App = {
     render();
   },
   clearDraft() { draftSteps = []; render(); },
+  /** Load a user flow's steps into the Builder for in-place editing. */
+  editFlowInBuilder(id) {
+    const f = getFlow(id);
+    if (!f || f.origin !== 'user') { toast('Only your own flows can be edited.'); return; }
+    draftSteps = f.steps.slice();
+    editingFlowId = id;
+    editingCopyOf = null;
+    goHash('#/builder');
+    toast('Editing ' + f.name + ' — update the steps, then save.');
+  },
+  /** Load a seed flow's steps into the Builder; saving creates your own copy. */
+  copyFlowToBuilder(id) {
+    const f = getFlow(id);
+    if (!f) return;
+    draftSteps = f.steps.slice();
+    editingFlowId = null;
+    editingCopyOf = id;
+    goHash('#/builder');
+  },
+  /** Abandon the builder edit/copy and start fresh. */
+  cancelBuilderEdit() {
+    draftSteps = [];
+    editingFlowId = null;
+    editingCopyOf = null;
+    render();
+  },
   saveFlow() {
-    const nameEl = document.getElementById('flow-name');
-    const name = (nameEl.value || '').trim();
     if (draftSteps.length < 2) { toast('Add at least 2 poses first.'); return; }
-    if (!name) { toast('Give your flow a name first.'); nameEl.focus(); return; }
     const tids = [];
     for (let i = 0; i + 1 < draftSteps.length; i++) {
       tids.push(pairToTrans.get(draftSteps[i] + '→' + draftSteps[i + 1]) || null);
     }
+    const isCycle = draftSteps.length > 1 && draftSteps[0] === draftSteps[draftSteps.length - 1];
+
+    // --- in-place edit of a user flow: same id, keep name/tutorials/training/goals ---
+    if (editingFlowId) {
+      const f = state.flows.find(x => x.id === editingFlowId);
+      if (!f) {
+        toast('That flow no longer exists.');
+        draftSteps = []; editingFlowId = null; editingCopyOf = null;
+        render();
+        return;
+      }
+      const wasDraft = isDraftFlow(f);
+      f.steps = draftSteps.slice();
+      f.transitions = tids;
+      f.washingMachine = isCycle;
+      if (f.steps.length >= 2) delete f.incomplete; // mapped now — no longer a draft
+      persist();
+      draftSteps = []; editingFlowId = null; editingCopyOf = null;
+      toast(wasDraft ? '🎉 Steps mapped — no longer a draft!' : 'Steps updated ✓');
+      goHash('#/flow/' + f.id);
+      return;
+    }
+
+    // --- new flow: fresh builder flow, or "my version" of a seed flow ---
+    const nameEl = document.getElementById('flow-name');
+    const copySrc = editingCopyOf ? getFlow(editingCopyOf) : null;
+    const name = ((nameEl && nameEl.value) || '').trim() ||
+      (copySrc ? copySrc.name + ' (my version)' : '');
+    if (!name) { toast('Give your flow a name first.'); if (nameEl && nameEl.focus) nameEl.focus(); return; }
     const flow = {
-      id: 'u_' + Date.now().toString(36),
+      id: 'u_' + slugify(name) + '_' + Date.now().toString(36),
       name,
       steps: draftSteps.slice(),
       transitions: tids,
-      washingMachine: draftSteps.length > 1 && draftSteps[0] === draftSteps[draftSteps.length - 1],
+      washingMachine: isCycle,
       origin: 'user',
-      note: '',
-      tutorials: []
+      note: copySrc ? 'My version of "' + copySrc.name + '".' : '',
+      tutorials: copySrc ? (copySrc.tutorials || []).map(t => Object.assign({}, t)) : []
     };
     state.flows.push(flow);
     if (!state.settings.trainingFlowIds.includes(flow.id)) state.settings.trainingFlowIds.push(flow.id);
     persist();
-    draftSteps = [];
-    toast(flow.washingMachine ? '🌀 Saved as a washing machine — added to your training!' : 'Flow saved — added to your training!');
-    location.hash = '#/flow/' + flow.id;
+    draftSteps = []; editingFlowId = null; editingCopyOf = null;
+    toast(copySrc ? '📋 Saved as your version — added to your training!'
+      : (flow.washingMachine ? '🌀 Saved as a washing machine — added to your training!' : 'Flow saved — added to your training!'));
+    goHash('#/flow/' + flow.id);
   },
   deleteFlow(id) {
     if (!confirm('Delete this flow?')) return;
     state.flows = state.flows.filter(f => f.id !== id);
     state.settings.trainingFlowIds = state.settings.trainingFlowIds.filter(x => x !== id);
     state.settings.goalFlowIds = state.settings.goalFlowIds.filter(x => x !== id);
+    if (editingFlowId === id) { editingFlowId = null; draftSteps = []; }
+    if (editingCopyOf === id) { editingCopyOf = null; draftSteps = []; }
     persist();
     location.hash = '#/builder';
+  },
+
+  /* add flow from YouTube */
+  toggleYtForm() {
+    ytFormOpen = !ytFormOpen;
+    updateLibraryList();
+  },
+  async submitYouTubeFlow() {
+    const urlEl = document.getElementById('yt-url');
+    const nameEl = document.getElementById('yt-name');
+    const wmEl = document.getElementById('yt-wm');
+    const url = ((urlEl && urlEl.value) || '').trim();
+    const vid = parseYouTubeId(url);
+    if (!vid) {
+      toast('That doesn\'t look like a YouTube link — check the URL and try again.');
+      if (urlEl && urlEl.focus) urlEl.focus();
+      return;
+    }
+    const nameOverride = ((nameEl && nameEl.value) || '').trim();
+    const wm = !!(wmEl && wmEl.checked);
+    toast('Looking up the video…');
+    let meta = null;
+    try { meta = await oembedLookup(url); } catch (e) { meta = null; } // offline → fallbacks below
+    const videoTitle = (meta && meta.title) || nameOverride || 'Untitled flow';
+    const flow = {
+      id: 'u_' + slugify(nameOverride || (meta && meta.title) || 'flow') + '_' + Date.now().toString(36),
+      name: nameOverride || (meta && meta.title) || 'Untitled flow',
+      steps: [],
+      transitions: [],
+      washingMachine: wm,
+      origin: 'user',
+      note: '',
+      tutorials: [{ title: videoTitle, url: url, videoId: vid, creator: (meta && meta.author_name) || 'YouTube' }],
+      incomplete: true
+    };
+    state.flows.push(flow);
+    if (!state.settings.trainingFlowIds.includes(flow.id)) state.settings.trainingFlowIds.push(flow.id);
+    persist();
+    ytFormOpen = false;
+    toast('📼 Saved as an unfinished draft — map its steps in the Builder.');
+    goHash('#/flow/' + flow.id);
   },
 
   /* flow training + goals */

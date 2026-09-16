@@ -20,7 +20,10 @@
  *                  description, safety, tutorials[], prereqTransitions:[ids] }
  *   flows:       { id, name, steps:[poseIds], transitions:[ids|null aligned],
  *                  washingMachine:bool, origin:'seed'|'user', note,
- *                  tutorials:[{title,url,creator}] }
+ *                  tutorials:[{title,url,creator}], incomplete:bool }
+ *                `incomplete` is only set on user flows added from a YouTube
+ *                link: the video is saved as an unfinished draft (no steps)
+ *                until its sequence is mapped in the Flow Builder.
  * ========================================================================== */
 
 window.SEED = {

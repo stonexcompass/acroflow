@@ -335,3 +335,13 @@ a.skill-name { color: inherit; text-decoration: none; }
 .checklist .check.on { border-color: var(--accent); }
 .checklist .check-mark { color: var(--accent); font-weight: 800; }
 .checklist .check-lv { margin-left: auto; font-size: .78rem; color: var(--muted); }
+
+/* ---- draft / incomplete flows (added from a video, steps not mapped yet) ---- */
+/* Standard "unfinished" language: dashed border, reduced opacity, grayscale
+   thumbnails, italic names — plus an explicit "Needs steps" pill and CTA. */
+.skill-item.incomplete { border-style: dashed; opacity: .85; }
+.skill-item.incomplete .skill-thumb { filter: grayscale(1); }
+.skill-item.incomplete .skill-name { font-style: italic; }
+.flow-detail.incomplete h1 { font-style: italic; }
+.flow-detail.incomplete .tut-thumb { filter: grayscale(1); }
+.draft-note { border-style: dashed; border-color: var(--warn); background: #fffbeb; }
