@@ -324,7 +324,7 @@ function prereqChips(ids, label) {
 
 /* ---------------- router ---------------- */
 const TITLES = {
-  library: 'Skill library', discover: 'What should I learn next?',
+  library: 'Skill library', discover: 'Practice',
   builder: 'Flow builder', jam: 'Jam with a partner',
   log: 'Practice log', data: 'Data & settings'
 };
@@ -598,7 +598,7 @@ function renderDiscover(view) {
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
   const roleNames = roles.map(r => ROLE_LABEL[r]).join(' + ');
 
-  let h = '<h1>What next?</h1>';
+  let h = '<h1>Practice</h1>';
   h += '<p class="muted">Based on your <strong>' + esc(roleNames) + '</strong> progress (change primary roles in 💾 Data).</p>';
 
   h += myGoalsHtml(roles) + flowsToDrillHtml(roles);
