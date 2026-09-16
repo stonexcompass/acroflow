@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- AcroFlow icon: a minimalist L-base "bird" — base in white, flyer in teal -->
+  <rect width="512" height="512" rx="112" fill="#5b21b6"/>
+  <!-- base torso -->
+  <rect x="112" y="392" width="288" height="30" rx="15" fill="#ffffff"/>
+  <!-- base legs going up to the flyer's hips -->
+  <rect x="216" y="212" width="24" height="190" rx="12" fill="#ffffff"/>
+  <rect x="272" y="212" width="24" height="190" rx="12" fill="#ffffff"/>
+  <!-- flyer body (prone plank) resting on the base's feet -->
+  <rect x="112" y="184" width="288" height="30" rx="15" fill="#0d9488"/>
+  <!-- flyer head -->
+  <circle cx="140" cy="150" r="32" fill="#0d9488"/>
+  <!-- flyer arms reaching back to the base -->
+  <rect x="300" y="150" width="80" height="18" rx="9" fill="#0d9488" transform="rotate(24 300 150)"/>
+</svg>

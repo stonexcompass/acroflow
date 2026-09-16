@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AcroFlow — AcroYoga skill tracker</title>
+  <meta name="description" content="Track acro-yoga poses, transitions, flows and washing machines. Offline-first PWA.">
+  <meta name="theme-color" content="#5b21b6">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">🤸</span> AcroFlow</div>
+    <div class="header-sub" id="header-sub"></div>
+  </header>
+
+  <main id="view" class="view" aria-live="polite"></main>
+
+  <nav class="tabbar" aria-label="Main navigation">
+    <a class="tab" href="#/library" data-tab="library"><span class="tab-icon" aria-hidden="true">📚</span><span class="tab-label">Library</span></a>
+    <a class="tab" href="#/discover" data-tab="discover"><span class="tab-icon" aria-hidden="true">🧭</span><span class="tab-label">Discover</span></a>
+    <a class="tab" href="#/builder" data-tab="builder"><span class="tab-icon" aria-hidden="true">🧩</span><span class="tab-label">Builder</span></a>
+    <a class="tab" href="#/jam" data-tab="jam"><span class="tab-icon" aria-hidden="true">🤝</span><span class="tab-label">Jam</span></a>
+    <a class="tab" href="#/log" data-tab="log"><span class="tab-icon" aria-hidden="true">📝</span><span class="tab-label">Log</span></a>
+    <a class="tab" href="#/data" data-tab="data"><span class="tab-icon" aria-hidden="true">💾</span><span class="tab-label">Data</span></a>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+  <script src="./supabase-adapter.js"></script>
+  <script>
+    // Register the service worker for offline use + installability.
+    // Relative path keeps this working on a GitHub Pages *project* site.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function (err) {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
