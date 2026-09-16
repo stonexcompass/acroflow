@@ -330,7 +330,7 @@ const TITLES = {
 };
 
 function currentRoute() {
-  const h = location.hash || '#/library';
+  const h = location.hash || '#/discover';
   const mSkill = h.match(/^#\/skill\/([A-Za-z0-9_]+)$/);
   if (mSkill) return { name: 'skill', id: mSkill[1] };
   const mFlow = h.match(/^#\/flow\/([A-Za-z0-9_]+)$/);
