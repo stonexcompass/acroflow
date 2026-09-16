@@ -8,6 +8,14 @@
  * adapter delegates everything to localStorage and the app behaves exactly
  * as it does today.
  *
+ * SCHEMA EVOLUTION RULE — READ BEFORE ADDING A SYNC FIELD:
+ *   NEW FIELDS GO IN `meta` (jsonb) — NEVER ADD ANOTHER COLUMN.
+ *   `user_flows.meta` carries flow-level extras (incomplete, tutorials, …);
+ *   `profiles.meta` carries future settings. Both round-trip opaquely
+ *   through this adapter (see flowToRow/rowToFlow and the profiles mapping),
+ *   so new features ship with ZERO database migrations. The v1.2 migration
+ *   was the last DDL this project will ever need.
+ *
  * What's stored where (all in this browser's localStorage, never in files):
  *   acroflow.v1        the app's working state (unchanged from v1)
  *   acroflow.supabase  { url, key } — project URL + publishable key
@@ -264,7 +272,14 @@
     };
   }
 
+  /* Flow-level extras (incomplete, tutorials, and anything future) live in
+   * the `meta` jsonb column — NEVER add another column to user_flows.
+   * Unknown keys already on f.meta are preserved verbatim. */
   function flowToRow(f, uid, meta, ts) {
+    var m = (f.meta && typeof f.meta === 'object' && !Array.isArray(f.meta))
+      ? Object.assign({}, f.meta) : {};
+    m.incomplete = !!f.incomplete;
+    m.tutorials = f.tutorials || [];
     return {
       id: uuidFor('flows', f.id, meta),
       user_id: uid,
@@ -274,8 +289,7 @@
       transitions: (f.transitions || []).map(function (t) { return t || null; }),
       washing_machine: !!f.washingMachine,
       note: f.note || null,
-      incomplete: !!f.incomplete,
-      tutorials: f.tutorials || [],
+      meta: m,
       updated_at: ts
     };
   }
@@ -283,6 +297,11 @@
     var id = localIdFor('flows', r.id, meta);
     meta.idmap = meta.idmap || { logs: {}, flows: {} };
     meta.idmap.flows[id] = r.id;
+    // `meta` is authoritative. The pre-final-v1.2 dedicated columns
+    // (`incomplete`, `tutorials`) are read as fallback only, for rows
+    // written before the meta migration — the select below never asks
+    // for them because they may not exist.
+    var m = (r.meta && typeof r.meta === 'object' && !Array.isArray(r.meta)) ? r.meta : {};
     return {
       id: id,
       name: r.name,
@@ -291,8 +310,9 @@
       washingMachine: !!r.washing_machine,
       origin: 'user',
       note: r.note || '',
-      incomplete: !!r.incomplete,
-      tutorials: r.tutorials || []
+      meta: m,
+      incomplete: m.incomplete !== undefined ? !!m.incomplete : !!r.incomplete,
+      tutorials: m.tutorials !== undefined ? m.tutorials : (r.tutorials || [])
     };
   }
 
@@ -319,7 +339,8 @@
   function flowSigs(flows) {
     var m = {};
     (flows || []).forEach(function (f) {
-      m[f.id] = JSON.stringify([f.name, f.steps, f.transitions, f.washingMachine, f.note, !!f.incomplete, f.tutorials]);
+      // meta is part of the signature so edits to future meta keys trigger a sync.
+      m[f.id] = JSON.stringify([f.name, f.steps, f.transitions, f.washingMachine, f.note, !!f.incomplete, f.tutorials, f.meta || {}]);
     });
     return m;
   }
@@ -384,11 +405,11 @@
   async function fetchCloud(uid) {
     var q = 'user_id=eq.' + encodeURIComponent(uid);
     var results = await Promise.all([
-      api('GET', '/rest/v1/profiles?select=id,display_name,primary_roles,training_flow_ids,goal_flow_ids,updated_at&id=eq.' + encodeURIComponent(uid)),
+      api('GET', '/rest/v1/profiles?select=id,display_name,primary_roles,training_flow_ids,goal_flow_ids,meta,updated_at&id=eq.' + encodeURIComponent(uid)),
       api('GET', '/rest/v1/progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/partner_progress?select=skill_id,role,level,updated_at&' + q),
       api('GET', '/rest/v1/practice_logs?select=id,date,partner,role,skill_ids,confidence,notes,updated_at&' + q),
-      api('GET', '/rest/v1/user_flows?select=id,name,steps,transitions,washing_machine,note,incomplete,tutorials,updated_at&' + q)
+      api('GET', '/rest/v1/user_flows?select=id,name,steps,transitions,washing_machine,note,meta,updated_at&' + q)
     ]);
     return {
       prof: (results[0] && results[0][0]) || null,
@@ -404,14 +425,19 @@
     var t = nowISO();
     var st = state.settings || {};
 
-    await api('POST', '/rest/v1/profiles', {
+    // Future settings live in settings.meta (round-tripped opaquely) —
+    // NEVER add another column to profiles. The key is omitted when empty
+    // so we never clobber server-side meta we haven't seen.
+    var profRow = {
       id: uid,
       display_name: st.name || null,
       primary_roles: st.primaryRoles || ['base', 'flyer'],
       training_flow_ids: st.trainingFlowIds || [],
       goal_flow_ids: st.goalFlowIds || [],
       updated_at: meta.settingsTs || t
-    }, UPSERT);
+    };
+    if (st.meta && typeof st.meta === 'object' && !Array.isArray(st.meta)) profRow.meta = st.meta;
+    await api('POST', '/rest/v1/profiles', profRow, UPSERT);
 
     var bags = [
       ['progress', 'progress', 'progressTs', 'delProgress'],
@@ -474,6 +500,10 @@
       s.settings.primaryRoles = cloud.prof.primary_roles || ['base', 'flyer'];
       s.settings.trainingFlowIds = cloud.prof.training_flow_ids || [];
       s.settings.goalFlowIds = cloud.prof.goal_flow_ids || [];
+      // Future settings ride along opaquely in profiles.meta.
+      if (cloud.prof.meta && typeof cloud.prof.meta === 'object' && !Array.isArray(cloud.prof.meta)) {
+        s.settings.meta = cloud.prof.meta;
+      }
       meta.settingsTs = cloud.prof.updated_at;
     }
     cloud.prog.forEach(function (r) {
@@ -627,23 +657,44 @@
     /* settings <-> profiles */
     var sts = meta.settingsTs;
     var mst = merged.settings || {};
+    // Copies every key of ops.profile through, so future settings keys
+    // (including meta) survive the merge write without code changes.
+    function profRowFrom(s) {
+      var row = {
+        display_name: s.name || null,
+        primary_roles: s.primaryRoles || ['base', 'flyer'],
+        training_flow_ids: s.trainingFlowIds || [],
+        goal_flow_ids: s.goalFlowIds || [],
+        updated_at: sts
+      };
+      if (s.meta && typeof s.meta === 'object' && !Array.isArray(s.meta)) row.meta = s.meta;
+      return row;
+    }
     if (cloud.prof) {
       if (sts && sts >= cloud.prof.updated_at) {
-        ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], training_flow_ids: mst.trainingFlowIds || [], goal_flow_ids: mst.goalFlowIds || [], updated_at: sts };
+        ops.profile = profRowFrom(mst);
       } else {
         // Cloud newer — or local predates sync (unknown ts): cloud wins (documented).
         merged.settings = { name: cloud.prof.display_name || '', primaryRoles: cloud.prof.primary_roles || ['base', 'flyer'], trainingFlowIds: cloud.prof.training_flow_ids || [], goalFlowIds: cloud.prof.goal_flow_ids || [] };
+        if (cloud.prof.meta && typeof cloud.prof.meta === 'object' && !Array.isArray(cloud.prof.meta)) {
+          merged.settings.meta = cloud.prof.meta;
+        }
         meta.settingsTs = cloud.prof.updated_at;
       }
     } else {
       var puts = sts || t;
-      ops.profile = { display_name: mst.name || null, primary_roles: mst.primaryRoles || ['base', 'flyer'], training_flow_ids: mst.trainingFlowIds || [], goal_flow_ids: mst.goalFlowIds || [], updated_at: puts };
+      ops.profile = profRowFrom(mst);
+      ops.profile.updated_at = puts;
       if (!sts) meta.settingsTs = puts;
     }
 
     /* execute cloud writes */
     if (ops.profile) {
-      await api('POST', '/rest/v1/profiles', { id: uid, display_name: ops.profile.display_name, primary_roles: ops.profile.primary_roles, updated_at: ops.profile.updated_at }, UPSERT);
+      // Pass every key through (id + whatever the merge decided): future
+      // settings keys must not be dropped here.
+      var prow = { id: uid };
+      Object.keys(ops.profile).forEach(function (k) { prow[k] = ops.profile[k]; });
+      await api('POST', '/rest/v1/profiles', prow, UPSERT);
     }
     if (ops.progUp.length) await api('POST', '/rest/v1/progress', ops.progUp, UPSERT);
     if (ops.pprogUp.length) await api('POST', '/rest/v1/partner_progress', ops.pprogUp, UPSERT);

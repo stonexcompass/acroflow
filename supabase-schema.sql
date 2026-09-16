@@ -20,10 +20,13 @@
 -- ============================================================================
 
 -- One profile per authenticated user.
+-- `meta` (jsonb) carries future settings. NEW FIELDS GO IN meta —
+-- never add another column (see supabase-migration-v1.2.sql).
 create table if not exists profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
   display_name  text,
   primary_roles text[] not null default '{base,flyer}',
+  meta          jsonb not null default '{}',
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -74,6 +77,9 @@ create table if not exists practice_logs (
 -- `transitions` is aligned to `steps` (transition id per link, or NULL where
 -- the link is unknown — Postgres text[] does support NULL elements; use
 -- jsonb instead if you prefer explicit nulls).
+-- `meta` (jsonb) carries every flow-level extra: incomplete, tutorials, and
+-- anything future. NEW FIELDS GO IN meta — never add another column
+-- (see supabase-migration-v1.2.sql).
 create table if not exists user_flows (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references profiles (id) on delete cascade,
@@ -82,8 +88,7 @@ create table if not exists user_flows (
   transitions     text[] not null default '{}', -- transition ids aligned to steps
   washing_machine boolean not null default false,
   note            text,
-  incomplete      boolean not null default false, -- draft: added from video, steps not mapped yet
-  tutorials       jsonb not null default '[]',   -- [{title,url,videoId,creator}]
+  meta            jsonb not null default '{}',  -- { incomplete, tutorials, … }
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );

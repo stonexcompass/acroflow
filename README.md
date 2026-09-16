@@ -175,15 +175,29 @@ The URL and key are stored only in your browser's localStorage (under
 
 | Table | App state | Notes |
 |---|---|---|
-| `profiles` | `settings` | `display_name` ↔ name, `primary_roles` ↔ primaryRoles, `training_flow_ids` ↔ trainingFlowIds, `goal_flow_ids` ↔ goalFlowIds |
+| `profiles` | `settings` | `display_name` ↔ name, `primary_roles` ↔ primaryRoles, `training_flow_ids` ↔ trainingFlowIds, `goal_flow_ids` ↔ goalFlowIds, `meta` ↔ settings.meta (future settings live here) |
 | `progress` | `progress` | one row per skill × role; sparse (no `unstarted`). Pose, transition **and flow** ids share this table — no schema change needed to track machines |
 | `partner_progress` | `partnerProgress` | your notes about the jam partner |
 | `practice_logs` | `practiceLogs` | local `l_…` ids map to UUIDs in a local id-map |
-| `user_flows` | `flows` | same UUID id-mapping; `transitions` NULLs preserved; `incomplete` + `tutorials` sync (v1.2 schema adds the two columns) |
+| `user_flows` | `flows` | same UUID id-mapping; `transitions` NULLs preserved; `meta` jsonb carries `incomplete`, `tutorials`, and any future flow extras — no schema change ever needed |
 
 Auth is email + password via Supabase Auth REST (`/auth/v1/signup`,
 `/auth/v1/token?grant_type=password`); the session is refreshed
 automatically and stored in localStorage under `acroflow.session`.
+
+### Schema evolution rule: no more migrations
+
+`supabase-migration-v1.2.sql` was the **last migration this project will
+ever need**. Both flexible tables have a `meta jsonb not null default '{}'`
+catch-all:
+
+- `user_flows.meta` — flow-level extras (`incomplete`, `tutorials`, …)
+- `profiles.meta` — future settings (round-tripped opaquely as `settings.meta`)
+
+**New fields go in `meta` — never add another column.** The adapter's
+`flowToRow`/`rowToFlow` and the profiles mapping already round-trip `meta`
+(including unknown keys), and the change-detection signatures cover it, so
+a new synced field is a few lines of JS and zero SQL.
 
 **Seed-data tradeoff** (also noted in the SQL file): the pose/transition/flow
 library currently ships **static in `data.js`** — instant load, works offline,
