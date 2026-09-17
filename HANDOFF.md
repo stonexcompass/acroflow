@@ -12,7 +12,7 @@ This file has everything needed to pick feature work back up later.
 - **Code:** `~/workspace/acro-app/` (this repo)
 - **Live:** https://stonexcompass.github.io/acroflow/
 - **Repo:** `stonexcompass/acroflow`, branch `main`, served via GitHub Pages.
-- **Latest published commit:** `a423ba4` (2026-09-17) — per-element notes.
+- **Latest published commit:** `b99020f` (2026-09-17) — Log tab type-ahead skill picker.
 - **Data:** 19 poses, 27 transitions, 15 seed flows + user-created flows.
 - **Service-worker cache:** `acroflow-v6`. Bump the version in `sw.js` whenever
   `app.js` (or any cached asset) changes in a user-visible way.
