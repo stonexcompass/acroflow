@@ -124,6 +124,151 @@ window.SEED.transitions.forEach(t => byId.set(t.id, Object.assign({ kind: 'trans
 const pairToTrans = new Map(); // "fromId→toId" -> transitionId
 window.SEED.transitions.forEach(t => pairToTrans.set(t.from + '→' + t.to, t.id));
 
+/* ---------------- custom poses & transitions (user-added) ---------------- */
+// User-added poses/transitions live in state.settings.meta.customSkills:
+// [{id, kind:'pose'|'transition', name, aliases:[], difficulty 1-5,
+//   description, from?, to?, tutorials:[], origin:'user'}]
+// Zero SQL, zero adapter changes: settings.meta already round-trips opaquely
+// through profiles.meta, and change detection picks up edits automatically.
+// Seed data is never mutated — customs are layered on top at registration.
+const registeredCustomIds = new Set();
+
+function customSkills() {
+  const m = state.settings.meta;
+  const a = (m && typeof m === 'object' && !Array.isArray(m)) ? m.customSkills : null;
+  return Array.isArray(a) ? a.filter(x => x && typeof x === 'object' && x.id && x.kind) : [];
+}
+
+/** Every pose: seed + user-added. */
+function allPoses() {
+  return window.SEED.poses.concat(customSkills().filter(s => s.kind === 'pose'));
+}
+/** Every transition: seed + user-added. */
+function allTransitions() {
+  return window.SEED.transitions.concat(customSkills().filter(s => s.kind === 'transition'));
+}
+
+function rand4() {
+  return Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+}
+
+/** 'u-p-<slug>-<rand4>' / 'u-t-<slug>-<rand4>'; rand regenerated on collision. */
+function customSkillId(kind, name) {
+  let id, guard = 0;
+  do {
+    id = 'u-' + kind[0] + '-' + slugify(name) + '-' + rand4();
+    guard++;
+  } while (byId.has(id) && guard < 20);
+  return id;
+}
+
+function ensureMeta() {
+  let m = state.settings.meta;
+  if (!m || typeof m !== 'object' || Array.isArray(m)) m = state.settings.meta = {};
+  return m;
+}
+
+/** Rebuild byId/pairToTrans from seed + customSkills. Idempotent. */
+function registerCustomSkills() {
+  registeredCustomIds.forEach(id => {
+    byId.delete(id);
+    Array.from(pairToTrans.keys()).forEach(k => { if (pairToTrans.get(k) === id) pairToTrans.delete(k); });
+  });
+  registeredCustomIds.clear();
+  customSkills().forEach(s => {
+    if (byId.has(s.id)) return;
+    byId.set(s.id, Object.assign({ origin: 'user' }, s));
+    registeredCustomIds.add(s.id);
+    if (s.kind === 'transition' && s.from && s.to) {
+      pairToTrans.set(s.from + '→' + s.to, s.id);
+    }
+  });
+}
+
+/** Push a new custom skill into storage and the registry. */
+function addCustomSkill(skill) {
+  const m = ensureMeta();
+  if (!Array.isArray(m.customSkills)) m.customSkills = [];
+  m.customSkills.push(skill);
+  registerCustomSkills();
+  persist();
+}
+
+/* ---------------- arrow-forgiving text ---------------- */
+// Transition names display with → (painful to type on mobile). normArrow
+// canonicalizes '→', '>' and ' to ' so search and parsing accept any of them.
+
+/** Lowercase; '→'/'>' become ' to '; whitespace collapsed. */
+function normArrow(s) {
+  return String(s == null ? '' : s).toLowerCase()
+    .replace(/[→>]/g, ' to ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Resolve typed pose text against pose names + aliases (case-insensitive). */
+function resolvePoseName(txt) {
+  const nt = normArrow(txt);
+  if (!nt) return null;
+  const poses = allPoses();
+  for (const p of poses) { if (normArrow(p.name) === nt) return p.id; }
+  for (const p of poses) {
+    if ((p.aliases || []).some(a => normArrow(a) === nt)) return p.id;
+  }
+  return null;
+}
+
+/**
+ * Parse "Bird to Throne" / "Bird > Throne" / "Bird → Throne".
+ * Splits on the LAST separator, so "Foot to Hand to Bird" resolves
+ * from="Foot to Hand", to="Bird". Returns {from, to} pose ids or {error}.
+ */
+function parseTransitionInput(text) {
+  const t = (text || '').trim();
+  if (!t) return { error: 'Type a transition like "Bird to Throne".' };
+  let idx = -1, len = 0, sep = '';
+  const ia = t.lastIndexOf('→');
+  if (ia > idx) { idx = ia; len = 1; sep = '→'; }
+  const ig = t.lastIndexOf('>');
+  if (ig > idx) { idx = ig; len = 1; sep = '>'; }
+  const re = /\s+to\s+/gi;
+  let m, lastTo = -1, lastToLen = 0;
+  while ((m = re.exec(t)) !== null) { lastTo = m.index; lastToLen = m[0].length; }
+  if (lastTo > idx) { idx = lastTo; len = lastToLen; sep = 'to'; }
+  if (idx < 0) return { error: 'Put "to", ">" or "→" between two poses, e.g. "Bird to Throne".' };
+  const fromTxt = t.slice(0, idx).trim();
+  const toTxt = t.slice(idx + len).trim();
+  if (!fromTxt) return { error: 'Missing the starting pose before "' + sep + '".' };
+  if (!toTxt) return { error: 'Missing the ending pose after "' + sep + '".' };
+  const fromId = resolvePoseName(fromTxt);
+  if (!fromId) return { error: 'Couldn\'t find a pose called "' + fromTxt + '".' };
+  const toId = resolvePoseName(toTxt);
+  if (!toId) return { error: 'Couldn\'t find a pose called "' + toTxt + '".' };
+  return { from: fromId, to: toId };
+}
+
+/** YouTube search URL for finding a tutorial; includes the typed name when present. */
+function skillYtSearchUrl(name) {
+  const q = (((name || '').trim() ? (name || '').trim() + ' ' : '') + 'acro yoga tutorial').trim();
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+}
+
+/**
+ * Attach a tutorial from an optional YouTube URL. Never blocks the save:
+ * a bad URL or offline lookup just yields no tutorial.
+ */
+async function attachTutorial(url, fallbackName) {
+  const u = (url || '').trim();
+  const vid = parseYouTubeId(u);
+  if (!vid) return [];
+  let meta = null;
+  try { meta = await oembedLookup(u); } catch (e) { meta = null; }
+  return [{
+    title: (meta && meta.title) || fallbackName || 'YouTube tutorial',
+    url: u, videoId: vid, creator: (meta && meta.author_name) || 'YouTube'
+  }];
+}
+
 function skillName(id) {
   const s = byId.get(id);
   if (s) return s.name;
@@ -154,24 +299,32 @@ function skillKindLabel(kind) {
   return 'Skill';
 }
 
-/** Search corpus for the log type-ahead: every pose, transition, flow, washing machine. */
+/** Search corpus for the log type-ahead: every pose, transition, flow, washing machine (incl. user-added). */
 function logSkillCorpus() {
   const out = [];
-  window.SEED.poses.forEach(p => out.push({ id: p.id, name: p.name, kind: 'pose' }));
-  window.SEED.transitions.forEach(t => out.push({ id: t.id, name: t.name, kind: 'transition' }));
+  allPoses().forEach(p => out.push({ id: p.id, name: p.name, kind: 'pose' }));
+  allTransitions().forEach(t => out.push({ id: t.id, name: t.name, kind: 'transition' }));
   allFlows().forEach(f => out.push({ id: f.id, name: f.name, kind: f.washingMachine ? 'wm' : 'flow' }));
   return out;
 }
 
-/** Case-insensitive substring search; starts-with matches rank first, then alphabetical. Capped at 8. */
+/**
+ * Case-insensitive substring search; starts-with matches rank first, then
+ * alphabetical. Capped at 8. Arrow-forgiving: "bird to throne" matches
+ * "Bird → Throne" via normArrow as well as the raw name.
+ */
 function logSkillSearch(q) {
   q = (q || '').trim().toLowerCase();
   if (!q) return [];
+  const nq = normArrow(q);
   const starts = [], contains = [];
   logSkillCorpus().forEach(e => {
     const n = (e.name || '').toLowerCase();
-    if (n.indexOf(q) === 0) starts.push(e);
-    else if (n.indexOf(q) !== -1) contains.push(e);
+    const nn = normArrow(e.name || '');
+    const isStart = n.indexOf(q) === 0 || nn.indexOf(nq) === 0;
+    const isHit = isStart || n.indexOf(q) !== -1 || nn.indexOf(nq) !== -1;
+    if (isStart) starts.push(e);
+    else if (isHit) contains.push(e);
   });
   const byName = (a, b) => String(a.name).localeCompare(String(b.name));
   starts.sort(byName); contains.sort(byName);
@@ -436,9 +589,9 @@ const TITLES = {
 
 function currentRoute() {
   const h = location.hash || '#/discover';
-  const mSkill = h.match(/^#\/skill\/([A-Za-z0-9_]+)$/);
+  const mSkill = h.match(/^#\/skill\/([A-Za-z0-9_-]+)$/);
   if (mSkill) return { name: 'skill', id: mSkill[1] };
-  const mFlow = h.match(/^#\/flow\/([A-Za-z0-9_]+)$/);
+  const mFlow = h.match(/^#\/flow\/([A-Za-z0-9_-]+)$/);
   if (mFlow) return { name: 'flow', id: mFlow[1] };
   const name = (h.match(/^#\/(\w+)/) || [])[1];
   return { name: ['library', 'discover', 'builder', 'jam', 'log', 'data'].includes(name) ? name : 'library' };
@@ -477,7 +630,8 @@ function libFiltered() {
     if (libDiff && s.difficulty !== libDiff) return false;
     if (q) {
       const hay = (s.name + ' ' + (s.aliases || []).join(' ')).toLowerCase();
-      if (!hay.includes(q)) return false;
+      // arrow-forgiving: "bird to throne" / "bird > throne" match "Bird → Throne"
+      if (!hay.includes(q) && !normArrow(hay).includes(normArrow(q))) return false;
     }
     if (libLevel !== 'all') {
       // "overall" = weakest primary role — honest about where you stand
@@ -523,11 +677,17 @@ function updateLibraryList() {
   if (libType === 'flow') { updateFlowList(el); return; }
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
   const items = libFiltered();
+  let h = '<div class="row wrap" style="margin-bottom:6px">';
+  if (libType === 'pose' || libType === 'all') h += '<button type="button" class="btn small" onclick="App.togglePoseForm()">＋ Add pose</button>';
+  if (libType === 'transition' || libType === 'all') h += '<button type="button" class="btn small" onclick="App.toggleTransForm()">＋ Add transition</button>';
+  h += '</div>';
+  if (poseFormOpen) h += poseFormHtml();
+  if (transFormOpen) h += transFormHtml();
   if (!items.length) {
-    el.innerHTML = '<div class="empty"><span class="big">🔍</span>No skills match those filters.<br>Try clearing the search.</div>';
+    el.innerHTML = h + '<div class="empty"><span class="big">🔍</span>No skills match those filters.<br>Try clearing the search.</div>';
     return;
   }
-  let h = '<p class="muted small">' + items.length + ' skill' + (items.length === 1 ? '' : 's') + '</p>';
+  h += '<p class="muted small">' + items.length + ' skill' + (items.length === 1 ? '' : 's') + '</p>';
   items.forEach(s => {
     const th = skillThumb(s);
     h += '<a class="skill-item' + (th ? ' has-thumb' : '') + '" href="#/skill/' + s.id + '">' +
@@ -614,6 +774,51 @@ function updateFlowList(el) {
   el.innerHTML = h;
 }
 
+/* ---------------- add pose / transition forms ---------------- */
+let poseFormOpen = false, transFormOpen = false;
+let poseFormDiff = 3, transFormDiff = 3; // difficulty segmented state per form
+
+function diffSegInner(cur, form) {
+  let h = '';
+  for (let d = 1; d <= 5; d++) {
+    h += '<button type="button" class="' + (d === cur ? 'on' : '') + '" onclick="App.customSkillDiff(' + d + ',\'' + form + '\')">' + d + '</button>';
+  }
+  return h;
+}
+
+/** YouTube attach block shared by both add forms (curation hint included). */
+function ytAttachHtml(form, name) {
+  return '<label class="field" for="cs-yt-' + form + '">YouTube URL (optional)</label>' +
+    '<input type="text" id="cs-yt-' + form + '" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…">' +
+    '<div style="margin-top:6px"><a id="cs-yt-link-' + form + '" href="' + skillYtSearchUrl(name) + '" target="_blank" rel="noopener">🔍 Search YouTube for ' + (name ? '“' + esc(name) + '” tutorial' : 'a tutorial') + ' ↗</a></div>' +
+    '<p class="hint">Tutorial curation: prefer a video that teaches just this skill — not one where it\'s buried in a long flow. A bad or offline URL just saves without a video; the save is never blocked.</p>';
+}
+
+function poseFormHtml() {
+  return '<div class="card"><h3 style="margin-top:0">＋ Add a pose</h3>' +
+    '<label class="field" for="cs-name">Name</label>' +
+    '<input type="text" id="cs-name" maxlength="60" placeholder="e.g. Reverse Bird" oninput="App.customSkillName(this,\'pose\')">' +
+    '<div class="role-label">Difficulty</div><div class="segmented" id="cs-diff-pose">' + diffSegInner(poseFormDiff, 'pose') + '</div>' +
+    '<label class="field" for="cs-desc">Description (optional)</label>' +
+    '<textarea id="cs-desc" placeholder="How to get into it, key cues…"></textarea>' +
+    ytAttachHtml('pose', '') +
+    '<div class="row wrap" style="margin-top:10px">' +
+    '<button type="button" class="btn" onclick="App.submitCustomPose()">Add pose</button>' +
+    '<button type="button" class="btn ghost" onclick="App.togglePoseForm()">Cancel</button></div></div>';
+}
+
+function transFormHtml() {
+  return '<div class="card"><h3 style="margin-top:0">＋ Add a transition</h3>' +
+    '<label class="field" for="cs-trans">From and to — type <strong>to</strong>, <strong>&gt;</strong> or <strong>→</strong></label>' +
+    '<input type="text" id="cs-trans" maxlength="80" placeholder="e.g. Bird to Throne" autocomplete="off" oninput="App.transPreview(this.value)">' +
+    '<div id="cs-trans-preview" style="margin-top:6px"></div>' +
+    '<div class="role-label">Difficulty</div><div class="segmented" id="cs-diff-trans">' + diffSegInner(transFormDiff, 'trans') + '</div>' +
+    ytAttachHtml('trans', '') +
+    '<div class="row wrap" style="margin-top:10px">' +
+    '<button type="button" class="btn" onclick="App.submitCustomTrans()">Add transition</button>' +
+    '<button type="button" class="btn ghost" onclick="App.toggleTransForm()">Cancel</button></div></div>';
+}
+
 /* ---------------- element notes ---------------- */
 // Poses, transitions, flows and washing machines are all "elements" here.
 // Notes live in state.settings.meta.notes keyed 'pose:<id>' | 'trans:<id>' |
@@ -669,7 +874,8 @@ function renderSkillDetail(view, id) {
   const roles = state.settings.primaryRoles.length ? state.settings.primaryRoles : ROLES;
 
   let h = '<a class="back" href="#/library">← Library</a>';
-  h += '<div class="detail-head"><span class="skill-kind' + (s.kind === 'transition' ? ' transition' : '') + '">' + (s.kind === 'pose' ? 'Pose' : 'Transition') + '</span>';
+  h += '<div class="detail-head"><span class="skill-kind' + (s.kind === 'transition' ? ' transition' : '') + '">' + (s.kind === 'pose' ? 'Pose' : 'Transition') + '</span>' +
+    (s.origin === 'user' ? ' <span class="pill">yours</span>' : '');
   h += '<h1>' + esc(s.name) + '</h1>';
   if (s.aliases && s.aliases.length) h += '<div class="aliases">also called: ' + esc(s.aliases.join(', ')) + '</div></div>';
   else h += '</div>';
@@ -697,6 +903,9 @@ function renderSkillDetail(view, id) {
 
   h += '<h2>Tutorials</h2><div class="card">' + tutorialList(s.tutorials) + '</div>';
   h += notesSection(noteKey(s.kind, s.id));
+  if (s.origin === 'user') {
+    h += '<div style="margin-top:16px"><button type="button" class="btn danger" onclick="App.deleteSkill(\'' + s.id + '\')">Delete this ' + s.kind + '</button></div>';
+  }
   view.innerHTML = h;
 }
 
@@ -787,7 +996,7 @@ function renderDiscover(view) {
   h += myGoalsHtml(roles) + flowsToDrillHtml(roles);
 
   // --- Ready to learn: transitions whose endpoints are drilling+, transition not solid ---
-  const ready = window.SEED.transitions.filter(t =>
+  const ready = allTransitions().filter(t =>
     atLeast(t.from, roles, 'drilling') && atLeast(t.to, roles, 'drilling') && !atLeast(t.id, roles, 'solid')
   ).sort((a, b) => (a.difficulty - b.difficulty) || a.name.localeCompare(b.name));
 
@@ -836,8 +1045,9 @@ let editingCopyOf = null; // seed flow id being copied as "my version" (null = n
 
 function renderBuilder(view) {
   const q = builderQuery.trim().toLowerCase();
-  const poses = window.SEED.poses
-    .filter(p => !q || (p.name + ' ' + (p.aliases || []).join(' ')).toLowerCase().includes(q))
+  const poses = allPoses()
+    .filter(p => !q || (p.name + ' ' + (p.aliases || []).join(' ')).toLowerCase().includes(q) ||
+      normArrow(p.name + ' ' + (p.aliases || []).join(' ')).includes(normArrow(q)))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const editF = editingFlowId ? getFlow(editingFlowId) : null;
@@ -1159,7 +1369,7 @@ window.App = {
 
   /* cloud-sync hooks — the sync actions themselves are attached by
    * supabase-adapter.js when it loads; these two are adapter-agnostic. */
-  applySyncedState(merged) { state = merged; render(); },
+  applySyncedState(merged) { state = merged; registerCustomSkills(); render(); },
   notify(m) { toast(m); },
 
   /* library */
@@ -1195,8 +1405,9 @@ window.App = {
     builderQuery = v;
     // re-render only the pose chips, keep the draft + name input intact
     const q = v.trim().toLowerCase();
-    const poses = window.SEED.poses
-      .filter(p => !q || (p.name + ' ' + (p.aliases || []).join(' ')).toLowerCase().includes(q))
+    const poses = allPoses()
+      .filter(p => !q || (p.name + ' ' + (p.aliases || []).join(' ')).toLowerCase().includes(q) ||
+        normArrow(p.name + ' ' + (p.aliases || []).join(' ')).includes(normArrow(q)))
       .sort((a, b) => a.name.localeCompare(b.name));
     const el = document.getElementById('pose-pick');
     if (el) el.innerHTML = poses.map(p =>
@@ -1347,6 +1558,116 @@ window.App = {
     goHash('#/flow/' + flow.id);
   },
 
+  /* add custom pose / transition */
+  togglePoseForm() {
+    poseFormOpen = !poseFormOpen;
+    if (poseFormOpen) transFormOpen = false;
+    updateLibraryList();
+  },
+  toggleTransForm() {
+    transFormOpen = !transFormOpen;
+    if (transFormOpen) poseFormOpen = false;
+    updateLibraryList();
+  },
+  customSkillDiff(d, form) {
+    if (form === 'pose') poseFormDiff = d; else transFormDiff = d;
+    const el = document.getElementById('cs-diff-' + form);
+    if (el) el.innerHTML = diffSegInner(form === 'pose' ? poseFormDiff : transFormDiff, form);
+  },
+  /** Keep the "Search YouTube for '<name>' tutorial" link in sync with the typed name. */
+  customSkillName(el, form) {
+    const name = (el.value || '').trim();
+    const link = document.getElementById('cs-yt-link-' + form);
+    if (link) {
+      link.href = skillYtSearchUrl(name);
+      link.textContent = '🔍 Search YouTube for ' + (name ? '“' + name + '” tutorial' : 'a tutorial') + ' ↗';
+    }
+  },
+  /** Live "From → To" preview (or the error naming the bad side) under the transition input. */
+  transPreview(v) {
+    const box = document.getElementById('cs-trans-preview');
+    const link = document.getElementById('cs-yt-link-trans');
+    const r = parseTransitionInput(v);
+    const name = r.error ? (v || '').trim() : skillName(r.from) + ' → ' + skillName(r.to);
+    if (box) {
+      box.innerHTML = r.error
+        ? '<span class="pill amber">' + esc(r.error) + '</span>'
+        : '<span class="pill green">✓</span> <span class="pill">' + esc(skillName(r.from)) + '</span> <span aria-hidden="true">→</span> <span class="pill">' + esc(skillName(r.to)) + '</span>';
+    }
+    if (link) {
+      link.href = skillYtSearchUrl(name);
+      link.textContent = '🔍 Search YouTube for ' + (name ? '“' + name + '” tutorial' : 'a tutorial') + ' ↗';
+    }
+  },
+  async submitCustomPose() {
+    const nameEl = document.getElementById('cs-name');
+    const name = ((nameEl && nameEl.value) || '').trim();
+    if (!name) { toast('Give the pose a name first.'); if (nameEl && nameEl.focus) nameEl.focus(); return; }
+    const desc = ((document.getElementById('cs-desc') || {}).value || '').trim();
+    const yt = ((document.getElementById('cs-yt-pose') || {}).value || '').trim();
+    toast('Adding pose…');
+    const tutorials = await attachTutorial(yt, name);
+    const skill = {
+      id: customSkillId('pose', name), kind: 'pose', name, aliases: [],
+      difficulty: poseFormDiff, description: desc, tutorials, origin: 'user'
+    };
+    addCustomSkill(skill);
+    poseFormOpen = false; poseFormDiff = 3;
+    toast('Pose added ✓');
+    goHash('#/skill/' + skill.id);
+  },
+  async submitCustomTrans() {
+    const inputEl = document.getElementById('cs-trans');
+    const raw = ((inputEl && inputEl.value) || '').trim();
+    const r = parseTransitionInput(raw);
+    if (r.error) { toast(r.error); if (inputEl && inputEl.focus) inputEl.focus(); return; }
+    const existing = pairToTrans.get(r.from + '→' + r.to);
+    if (existing) { toast('That transition is already in your library.'); goHash('#/skill/' + existing); return; }
+    const name = skillName(r.from) + ' → ' + skillName(r.to);
+    const yt = ((document.getElementById('cs-yt-trans') || {}).value || '').trim();
+    toast('Adding transition…');
+    const tutorials = await attachTutorial(yt, name);
+    const skill = {
+      id: customSkillId('transition', name), kind: 'transition', name, aliases: [],
+      difficulty: transFormDiff, description: '', from: r.from, to: r.to,
+      tutorials, origin: 'user'
+    };
+    addCustomSkill(skill);
+    transFormOpen = false; transFormDiff = 3;
+    toast('Transition added ✓');
+    goHash('#/skill/' + skill.id);
+  },
+  deleteSkill(id) {
+    const s = byId.get(id);
+    if (!s || s.origin !== 'user') return;
+    if (!confirm('Delete "' + s.name + '"? Its progress and notes go too.')) return;
+    // deleting a pose also deletes its custom transitions
+    const doomed = [id];
+    if (s.kind === 'pose') {
+      customSkills().forEach(x => {
+        if (x.kind === 'transition' && (x.from === id || x.to === id)) doomed.push(x.id);
+      });
+    }
+    const m = state.settings.meta;
+    if (m && Array.isArray(m.customSkills)) {
+      m.customSkills = m.customSkills.filter(x => doomed.indexOf(x.id) === -1);
+    }
+    registerCustomSkills();
+    // drop their notes
+    if (state.settings.meta && state.settings.meta.notes && typeof state.settings.meta.notes === 'object') {
+      doomed.forEach(did => {
+        ['pose:', 'trans:', 'flow:'].forEach(p => { delete state.settings.meta.notes[p + did]; });
+      });
+      if (!Object.keys(state.settings.meta.notes).length) delete state.settings.meta.notes;
+    }
+    // clear progress through the normal path — sync tombstones delete server rows
+    doomed.forEach(did => {
+      ROLES.forEach(r => { setLevel(did, r, 'unstarted', 'you'); setLevel(did, r, 'unstarted', 'partner'); });
+    });
+    persist();
+    location.hash = '#/library';
+  },
+
   /* flow training + goals */
   toggleTraining(flowId) {
     const arr = state.settings.trainingFlowIds;
@@ -1485,6 +1806,7 @@ window.App = {
         data.version = window.SEED.version;
         state = data;
         pruneFlowLists();
+        registerCustomSkills();
         persist();
         toast('Backup imported!');
         render();
@@ -1525,6 +1847,7 @@ async function init() {
     if (!Array.isArray(state.settings.trainingFlowIds)) state.settings.trainingFlowIds = [];
     if (!Array.isArray(state.settings.goalFlowIds)) state.settings.goalFlowIds = [];
     pruneFlowLists();
+    registerCustomSkills();
   }
   window.addEventListener('hashchange', render);
   window.addEventListener('beforeunload', flushNotes);

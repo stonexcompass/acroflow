@@ -1,6 +1,6 @@
 # AcroFlow — Handoff Notes
 
-Last updated: 2026-09-17. Log tab "Skills drilled" checkbox grids replaced with a type-ahead picker (see below).
+Last updated: 2026-09-17. Custom poses & transitions can now be added to the Library (unpublished, local only — see below).
 This file has everything needed to pick feature work back up later.
 
 ## Project snapshot
@@ -14,7 +14,7 @@ This file has everything needed to pick feature work back up later.
 - **Repo:** `stonexcompass/acroflow`, branch `main`, served via GitHub Pages.
 - **Latest published commit:** `b99020f` (2026-09-17) — Log tab type-ahead skill picker.
 - **Data:** 19 poses, 27 transitions, 15 seed flows + user-created flows.
-- **Service-worker cache:** `acroflow-v6`. Bump the version in `sw.js` whenever
+- **Service-worker cache:** `acroflow-v8`. Bump the version in `sw.js` whenever
   `app.js` (or any cached asset) changes in a user-visible way.
 
 ## Publishing
@@ -65,6 +65,9 @@ Harness lives in `~/workspace/acro-app-validation/`, run with `node`:
 - `validate-meta.cjs` — meta jsonb sync round-trip: **50/50**
 - `validate-notes.cjs` — per-element notes: **43/43**
 - `validate-logskills.cjs` — log type-ahead search/dedupe/escaping/wiring: **61/61**
+- `validate-customskills.cjs` — custom poses/transitions: ids, registry,
+  arrow-forgiving parse/search, add forms, YouTube attach, delete cascade,
+  progress + meta sync: **114/114**
 - Plus `node --check` on all JS and a credential sweep before every publish.
 
 ## Recent features (2026-09-17)
@@ -74,13 +77,34 @@ Harness lives in `~/workspace/acro-app-validation/`, run with `node`:
   keyed `pose:<id>` / `trans:<id>` / `flow:<id>`; syncs via `profiles.meta`,
   zero SQL. Auto-saved textarea on skill + flow detail views, 📝 indicator in
   Library. Service worker `acroflow-v6`.
-- **Log tab type-ahead** (unpublished, local only): replaced the three "Skills
+- **Log tab type-ahead** (published as `b99020f`): replaced the three "Skills
   drilled" checkbox grids (poses / transitions / flows) with a type-ahead:
   input + suggestion dropdown (case-insensitive substring, starts-with first,
   cap 8, kind tags incl. 🌀 washing machine), selected skills as removable
   chips. Selection in module-level `logSelected`, restored on re-render,
   reset after save. Enter picks first suggestion, Escape/outside-click closes.
   Service worker `acroflow-v7`. Zero SQL.
+- **Custom poses & transitions** (unpublished, local only): "＋ Add pose" /
+  "＋ Add transition" buttons in Library. Pose form: name, difficulty 1–5,
+  description, optional YouTube URL. Transition form: free-text "Bird to
+  Throne" with live From → To preview, difficulty, optional YouTube URL.
+  Both forms carry a "🔍 Search YouTube for '<name>' tutorial ↗" link and the
+  curation hint (isolated-skill videos preferred). Stored at
+  `state.settings.meta.customSkills` (`{id, kind, name, aliases, difficulty,
+  description, from?, to?, tutorials, origin:'user'}`); ids
+  `u-p|t-<slug>-<rand4>`; `registerCustomSkills()` layers them over seed data
+  into `byId`/`pairToTrans` (idempotent, seeds never mutated). Visible in
+  Library, Builder picker, log type-ahead, skill detail, Jam, flow link
+  resolution. Delete (user elements only, on skill detail): pose deletion
+  cascades to its custom transitions, drops note keys, clears progress via
+  `setLevel(…, 'unstarted')` so sync tombstones delete server rows. Progress
+  for custom ids syncs through the progress table (`skill_id` is free text).
+  Service worker `acroflow-v8`. Zero SQL.
+- **Arrow-forgiving input & search** (unpublished, local only): `normArrow()`
+  canonicalizes `→`/`>`/`to`; library search, log type-ahead, and Builder
+  pose search all match "bird to throne" / "bird > throne" against
+  "Bird → Throne". `parseTransitionInput()` splits the transition form on the
+  LAST separator and resolves each side against pose names + aliases.
 
 ## Open / unresolved items
 
@@ -113,6 +137,9 @@ Harness lives in `~/workspace/acro-app-validation/`, run with `node`:
   as a bare draft.
 - **Deliberate tutorial gaps** (Couch, Secretary, High Flying Whale, some
   transitions): do not invent steps or attach vague videos to claim coverage.
+- **Tutorial curation:** when attaching or finding tutorial videos, prefer
+  videos that isolate the single skill over videos where the skill is buried
+  in a flow/compilation. (Shown as a hint on the add pose/transition forms.)
 - Several seed flows are intentionally sequence-unverified rather than guessed.
 
 ## Working agreements with the user

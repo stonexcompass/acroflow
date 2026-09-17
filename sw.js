@@ -7,7 +7,7 @@
  * Bump CACHE_VERSION when shipping changes so clients pick them up.
  * ========================================================================== */
 
-const CACHE_VERSION = 'acroflow-v7';
+const CACHE_VERSION = 'acroflow-v8';
 const APP_SHELL = [
   './',
   './index.html',
