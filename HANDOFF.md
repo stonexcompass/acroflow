@@ -1,6 +1,6 @@
 # AcroFlow — Handoff Notes
 
-Last updated: 2026-09-17. The user resumed AcroFlow work — per-element Notes feature added (see below).
+Last updated: 2026-09-17. Log tab "Skills drilled" checkbox grids replaced with a type-ahead picker (see below).
 This file has everything needed to pick feature work back up later.
 
 ## Project snapshot
@@ -60,10 +60,27 @@ and README.
 
 Harness lives in `~/workspace/acro-app-validation/`, run with `node`:
 
-- `validate-flows.cjs` — seed data integrity: **218/218**
+- `validate-flows.cjs` — seed data integrity + log type-ahead markup: **219/219**
 - `validate-ytflow.cjs` — YouTube-import feature: **90/90**
 - `validate-meta.cjs` — meta jsonb sync round-trip: **50/50**
+- `validate-notes.cjs` — per-element notes: **43/43**
+- `validate-logskills.cjs` — log type-ahead search/dedupe/escaping/wiring: **61/61**
 - Plus `node --check` on all JS and a credential sweep before every publish.
+
+## Recent features (2026-09-17)
+
+- **Per-element Notes** (published as `a423ba4`): free-text notes on every pose,
+  transition, flow, and washing machine. Stored at `state.settings.meta.notes`
+  keyed `pose:<id>` / `trans:<id>` / `flow:<id>`; syncs via `profiles.meta`,
+  zero SQL. Auto-saved textarea on skill + flow detail views, 📝 indicator in
+  Library. Service worker `acroflow-v6`.
+- **Log tab type-ahead** (unpublished, local only): replaced the three "Skills
+  drilled" checkbox grids (poses / transitions / flows) with a type-ahead:
+  input + suggestion dropdown (case-insensitive substring, starts-with first,
+  cap 8, kind tags incl. 🌀 washing machine), selected skills as removable
+  chips. Selection in module-level `logSelected`, restored on re-render,
+  reset after save. Enter picks first suggestion, Escape/outside-click closes.
+  Service worker `acroflow-v7`. Zero SQL.
 
 ## Open / unresolved items
 

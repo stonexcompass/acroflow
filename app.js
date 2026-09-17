@@ -135,6 +135,73 @@ function allFlows() {
   return window.SEED.flows.concat(state.flows);
 }
 
+/* ---------------- Log tab type-ahead helpers (pure; see validate-logskills.cjs) ---------------- */
+
+/** 'pose'|'transition'|'flow'|'wm'|null for any loggable element id. */
+function skillKind(id) {
+  const s = byId.get(id);
+  if (s) return s.kind; // 'pose' | 'transition'
+  const f = getFlow(id);
+  if (f) return f.washingMachine ? 'wm' : 'flow';
+  return null;
+}
+
+function skillKindLabel(kind) {
+  if (kind === 'pose') return 'Pose';
+  if (kind === 'transition') return 'Transition';
+  if (kind === 'wm') return '🌀 washing machine';
+  if (kind === 'flow') return 'Flow';
+  return 'Skill';
+}
+
+/** Search corpus for the log type-ahead: every pose, transition, flow, washing machine. */
+function logSkillCorpus() {
+  const out = [];
+  window.SEED.poses.forEach(p => out.push({ id: p.id, name: p.name, kind: 'pose' }));
+  window.SEED.transitions.forEach(t => out.push({ id: t.id, name: t.name, kind: 'transition' }));
+  allFlows().forEach(f => out.push({ id: f.id, name: f.name, kind: f.washingMachine ? 'wm' : 'flow' }));
+  return out;
+}
+
+/** Case-insensitive substring search; starts-with matches rank first, then alphabetical. Capped at 8. */
+function logSkillSearch(q) {
+  q = (q || '').trim().toLowerCase();
+  if (!q) return [];
+  const starts = [], contains = [];
+  logSkillCorpus().forEach(e => {
+    const n = (e.name || '').toLowerCase();
+    if (n.indexOf(q) === 0) starts.push(e);
+    else if (n.indexOf(q) !== -1) contains.push(e);
+  });
+  const byName = (a, b) => String(a.name).localeCompare(String(b.name));
+  starts.sort(byName); contains.sort(byName);
+  return starts.concat(contains).slice(0, 8);
+}
+
+/** Deduplicated add / removal for the module-level logSelected id array. */
+function logSelectedAdd(arr, id) {
+  if (id && arr.indexOf(id) === -1) arr.push(id);
+  return arr;
+}
+function logSelectedRemove(arr, id) {
+  return arr.filter(x => x !== id);
+}
+
+/** Removable chip HTML for one selected element. */
+function logSkillChipHtml(id) {
+  const label = skillKindLabel(skillKind(id));
+  return '<span class="chip log-chip"><span class="log-chip-name">' + esc(skillName(id)) + '</span>' +
+    '<span class="kind">' + esc(label) + '</span>' +
+    '<button type="button" class="chip-x" aria-label="Remove ' + esc(skillName(id)) + '" ' +
+    'onclick="App.logSkillRemove(\'' + id + '\')">✕</button></span>';
+}
+
+/** One suggestion row in the type-ahead dropdown. */
+function logSkillSuggestionHtml(e) {
+  return '<button type="button" class="combo-item" onclick="App.logSkillAdd(\'' + e.id + '\')">' +
+    '<span>' + esc(e.name) + '</span><span class="kind">' + esc(skillKindLabel(e.kind)) + '</span></button>';
+}
+
 function getFlow(id) {
   return allFlows().find(f => f.id === id) || null;
 }
@@ -987,6 +1054,7 @@ function renderJam(view) {
 
 /* ---------------- Practice log ---------------- */
 let logConfidence = 3;
+let logSelected = []; // skill/flow ids picked in the Log tab's type-ahead
 
 function localToday() {
   const d = new Date();
@@ -1015,19 +1083,11 @@ function renderLog(view) {
     [1, 2, 3, 4, 5].map(n => '<button type="button" class="' + (n === logConfidence ? 'on' : '') + '" onclick="App.setConfidence(' + n + ')">' + n + '</button>').join('') + '</div>';
 
   h += '<div class="role-label">Skills drilled — poses, transitions & flows</div>';
-  h += '<div class="muted small">Poses</div><div class="check-grid">';
-  window.SEED.poses.forEach(p => {
-    h += '<label class="check"><input type="checkbox" name="log-skill" value="' + p.id + '"> ' + esc(p.name) + '</label>';
-  });
-  h += '</div><div class="muted small">Transitions</div><div class="check-grid">';
-  window.SEED.transitions.forEach(t => {
-    h += '<label class="check"><input type="checkbox" name="log-skill" value="' + t.id + '"> ' + esc(t.name) + '</label>';
-  });
-  h += '</div><div class="muted small">Flows & washing machines</div><div class="check-grid">';
-  allFlows().forEach(f => {
-    h += '<label class="check"><input type="checkbox" name="log-skill" value="' + f.id + '"> 🌀 ' + esc(f.name) + '</label>';
-  });
-  h += '</div>';
+  h += '<div class="combo-wrap"><div class="chip-row" id="log-chips">' +
+    logSelected.map(logSkillChipHtml).join('') + '</div>';
+  h += '<input type="text" id="log-skill-search" placeholder="Type to find a pose, transition, or flow…" autocomplete="off" ' +
+    'oninput="App.logSkillInput(this.value)" onfocus="App.logSkillInput(this.value)" onkeydown="App.logSkillKey(event)">';
+  h += '<div class="combo-list hidden" id="log-skill-list" role="listbox"></div></div>';
   h += '<label class="field" for="log-notes">Notes</label><textarea id="log-notes" placeholder="What worked? What needs work?"></textarea>';
   h += '<div style="margin-top:10px"><button type="button" class="btn" onclick="App.saveLog()">Save session</button></div></div>';
 
@@ -1333,12 +1393,49 @@ window.App = {
     logConfidence = n;
     document.querySelectorAll('#log-conf button').forEach((b, i) => b.classList.toggle('on', i + 1 === n));
   },
+  /* log type-ahead */
+  logSkillInput(q) {
+    const list = document.getElementById('log-skill-list');
+    if (!list) return;
+    const matches = logSkillSearch(q);
+    if (!matches.length) { list.classList.add('hidden'); list.innerHTML = ''; return; }
+    list.innerHTML = matches.map(logSkillSuggestionHtml).join('');
+    list.classList.remove('hidden');
+  },
+  logSkillKey(e) {
+    if (e.key === 'Escape') { App.logSkillClose(); return; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const input = document.getElementById('log-skill-search');
+      const m = logSkillSearch(input ? input.value : '');
+      if (m.length) App.logSkillAdd(m[0].id);
+    }
+  },
+  logSkillAdd(id) {
+    logSelectedAdd(logSelected, id);
+    App.logSkillRefresh();
+  },
+  logSkillRemove(id) {
+    logSelected = logSelectedRemove(logSelected, id);
+    App.logSkillRefresh();
+  },
+  logSkillRefresh() {
+    const row = document.getElementById('log-chips');
+    if (row) row.innerHTML = logSelected.map(logSkillChipHtml).join('');
+    const input = document.getElementById('log-skill-search');
+    if (input) input.value = '';
+    App.logSkillClose();
+  },
+  logSkillClose() {
+    const list = document.getElementById('log-skill-list');
+    if (list) { list.classList.add('hidden'); list.innerHTML = ''; }
+  },
   saveLog() {
     const date = document.getElementById('log-date').value || localToday();
     const partner = document.getElementById('log-partner').value.trim();
     const role = document.getElementById('log-role').value;
     const notes = document.getElementById('log-notes').value.trim();
-    const skills = Array.from(document.querySelectorAll('input[name="log-skill"]:checked')).map(c => c.value);
+    const skills = logSelected.slice();
     state.practiceLogs.push({
       id: 'l_' + Date.now().toString(36),
       date, partner, role, skills,
@@ -1346,6 +1443,7 @@ window.App = {
     });
     persist();
     logConfidence = 3;
+    logSelected = [];
     toast('Session logged! 🎉');
     render();
   },
@@ -1430,6 +1528,13 @@ async function init() {
   }
   window.addEventListener('hashchange', render);
   window.addEventListener('beforeunload', flushNotes);
+  // Close the log type-ahead dropdown when tapping outside it.
+  document.addEventListener('click', (e) => {
+    const list = document.getElementById('log-skill-list');
+    if (list && !list.classList.contains('hidden') && !e.target.closest('.combo-wrap')) {
+      list.classList.add('hidden'); list.innerHTML = '';
+    }
+  });
   render();
 }
 
