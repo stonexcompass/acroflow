@@ -111,10 +111,8 @@ only after auth works (see open issues).
 
 ## Current state (2026-09-17)
 
-- Latest published: `b99020f` — Log tab type-ahead skill picker (`acroflow-v7`).
-- In flight (committed locally, NOT published): custom poses/transitions
-  add-to-library + arrow-forgiving search + YouTube attach on add
-  (`acroflow-v8`). Needs user-pasted PAT to publish.
+- Latest published: `6ae75ea` (2026-09-17) — custom poses/transitions add-to-library + arrow-forgiving search + YouTube attach (`9ec1502`), AGENT.md (`acroflow-v8`).
+- Content: 19 poses, 27 transitions, 15 seed flows + user flows (+ user-added custom skills).
 - Content: 19 poses, 27 transitions, 15 seed flows + user flows.
 - Element notes shipped 2026-09-17 (`a423ba4`, v6): notes box on every
   element detail, syncs via `profiles.meta`.
