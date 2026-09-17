@@ -378,6 +378,7 @@ function currentRoute() {
 }
 
 function render() {
+  flushNotes(); // never lose a note being typed when the view re-renders
   const r = currentRoute();
   const view = document.getElementById('view');
   document.querySelectorAll('.tab').forEach(t =>
@@ -465,7 +466,7 @@ function updateLibraryList() {
     h += '<a class="skill-item' + (th ? ' has-thumb' : '') + '" href="#/skill/' + s.id + '">' +
       (th ? '<img class="skill-thumb" src="' + esc(th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
       '<div class="skill-main"><div class="skill-top"><span class="skill-kind' + (s.kind === 'transition' ? ' transition' : '') + '">' + (s.kind === 'pose' ? 'Pose' : 'Transition') + '</span>' +
-      '<span class="skill-name">' + esc(s.name) + '</span>' + roleDots(s.id, roles, libProfile) + '</div>' +
+      '<span class="skill-name">' + esc(s.name) + '</span>' + noteMark(noteKey(s.kind, s.id)) + roleDots(s.id, roles, libProfile) + '</div>' +
       '<div class="skill-meta">' + diffPips(s.difficulty) +
       (s.kind === 'transition' ? ' &nbsp;' + esc(skillName(s.from)) + ' → ' + esc(skillName(s.to)) : '') + '</div></div></a>';
   });
@@ -498,7 +499,7 @@ function flowCard(f, roles) {
   let h = '<div class="skill-item flow-card' + (th ? ' has-thumb' : '') + (draft ? ' incomplete' : '') + '">' +
     (th ? '<a href="#/flow/' + f.id + '"><img class="skill-thumb" src="' + esc(th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'"></a>' : '') +
     '<div class="skill-main"><div class="skill-top">' +
-    '<a class="skill-name" href="#/flow/' + f.id + '">' + esc(f.name) + '</a>' + roleDots(f.id, roles, libProfile) + '</div>' +
+    '<a class="skill-name" href="#/flow/' + f.id + '">' + esc(f.name) + '</a>' + noteMark(noteKey('flow', f.id)) + roleDots(f.id, roles, libProfile) + '</div>' +
     '<div class="skill-meta">' +
     (f.washingMachine ? '🌀 washing machine · ' : 'flow · ') +
     (draft ? '<span class="pill amber">🧩 Needs steps</span> ' :
@@ -546,6 +547,54 @@ function updateFlowList(el) {
   el.innerHTML = h;
 }
 
+/* ---------------- element notes ---------------- */
+// Poses, transitions, flows and washing machines are all "elements" here.
+// Notes live in state.settings.meta.notes keyed 'pose:<id>' | 'trans:<id>' |
+// 'flow:<id>' (washing machines are flows). settings.meta already round-trips
+// through profiles.meta in the adapter, so notes sync with zero schema changes;
+// change detection stamps settingsTs automatically on edit.
+let noteTimer = null, pendingNote = null;
+
+function noteKey(kind, id) {
+  return (kind === 'transition' ? 'trans:' : kind === 'flow' ? 'flow:' : 'pose:') + id;
+}
+function noteMap() {
+  const m = state.settings.meta;
+  return (m && typeof m === 'object' && !Array.isArray(m) &&
+    m.notes && typeof m.notes === 'object' && !Array.isArray(m.notes)) ? m.notes : {};
+}
+function getNote(key) { return noteMap()[key] || ''; }
+function hasNote(key) { return !!getNote(key); }
+function noteMark(key) {
+  return hasNote(key) ? '<span class="note-ind" title="Has notes">📝</span>' : '';
+}
+function writeNote(key, text) {
+  const t = (text || '').trim();
+  let m = state.settings.meta;
+  if (!m || typeof m !== 'object' || Array.isArray(m)) m = state.settings.meta = {};
+  if (!t) {
+    if (m.notes && typeof m.notes === 'object' && !Array.isArray(m.notes)) {
+      delete m.notes[key];
+      if (!Object.keys(m.notes).length) delete m.notes;
+    }
+    if (!Object.keys(m).length) delete state.settings.meta;
+  } else {
+    if (!m.notes || typeof m.notes !== 'object' || Array.isArray(m.notes)) m.notes = {};
+    m.notes[key] = t;
+  }
+  persist();
+}
+function flushNotes() {
+  if (noteTimer) { clearTimeout(noteTimer); noteTimer = null; }
+  if (pendingNote) { const p = pendingNote; pendingNote = null; writeNote(p.key, p.value); }
+}
+function notesSection(key) {
+  return '<h2>📝 Notes</h2><div class="card">' +
+    '<textarea id="note-area" data-key="' + esc(key) + '" placeholder="Cues, reminders, what to drill next…" ' +
+    'oninput="App.noteInput(this)" onblur="App.noteBlur(this)">' + esc(getNote(key)) + '</textarea>' +
+    '<p class="hint">Saved automatically — syncs across your devices.</p></div>';
+}
+
 /* ---------------- Skill detail ---------------- */
 function renderSkillDetail(view, id) {
   const s = byId.get(id);
@@ -580,6 +629,7 @@ function renderSkillDetail(view, id) {
   h += '<p class="hint">Poses and transitions are tracked separately, per role — knowing Bird and Throne doesn\'t mean you know Bird → Throne.</p>';
 
   h += '<h2>Tutorials</h2><div class="card">' + tutorialList(s.tutorials) + '</div>';
+  h += notesSection(noteKey(s.kind, s.id));
   view.innerHTML = h;
 }
 
@@ -862,6 +912,7 @@ function renderFlowDetail(view, id) {
   }
 
   h += '<h2>Tutorials</h2><div class="card">' + tutorialList(f.tutorials) + '</div>';
+  h += notesSection(noteKey('flow', f.id));
   if (f.origin === 'user') {
     h += '<button type="button" class="btn danger" onclick="App.deleteFlow(\'' + f.id + '\')">Delete this flow</button>';
   }
@@ -1068,6 +1119,17 @@ window.App = {
     render(); // refresh dots/steppers
   },
 
+  /* element notes */
+  noteInput(el) {
+    if (noteTimer) clearTimeout(noteTimer);
+    pendingNote = { key: el.getAttribute('data-key'), value: el.value };
+    noteTimer = setTimeout(flushNotes, 500);
+  },
+  noteBlur(el) {
+    pendingNote = { key: el.getAttribute('data-key'), value: el.value };
+    flushNotes();
+  },
+
   /* builder */
   builderSearch(v) {
     builderQuery = v;
@@ -1176,6 +1238,8 @@ window.App = {
     state.flows = state.flows.filter(f => f.id !== id);
     state.settings.trainingFlowIds = state.settings.trainingFlowIds.filter(x => x !== id);
     state.settings.goalFlowIds = state.settings.goalFlowIds.filter(x => x !== id);
+    // drop its notes too
+    if (state.settings.meta && state.settings.meta.notes) delete state.settings.meta.notes[noteKey('flow', id)];
     if (editingFlowId === id) { editingFlowId = null; draftSteps = []; }
     if (editingCopyOf === id) { editingCopyOf = null; draftSteps = []; }
     persist();
@@ -1365,6 +1429,7 @@ async function init() {
     pruneFlowLists();
   }
   window.addEventListener('hashchange', render);
+  window.addEventListener('beforeunload', flushNotes);
   render();
 }
 

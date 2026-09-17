@@ -1,6 +1,6 @@
 # AcroFlow — Handoff Notes
 
-Last updated: 2026-09-16. The user is pausing AcroFlow to build another app.
+Last updated: 2026-09-17. The user resumed AcroFlow work — per-element Notes feature added (see below).
 This file has everything needed to pick feature work back up later.
 
 ## Project snapshot
@@ -8,13 +8,13 @@ This file has everything needed to pick feature work back up later.
 - **What:** AcroFlow, an installable offline-first PWA for acro-yoga training
   (pose/transition library, flow + washing-machine library, Flow Builder,
   per-role progress, training shortlist, goals, Practice planner, practice logs,
-  Jam partner comparison, JSON import/export, Supabase cloud sync).
+  per-element notes, Jam partner comparison, JSON import/export, Supabase cloud sync).
 - **Code:** `~/workspace/acro-app/` (this repo)
 - **Live:** https://stonexcompass.github.io/acroflow/
 - **Repo:** `stonexcompass/acroflow`, branch `main`, served via GitHub Pages.
 - **Latest published commit:** `a8424b0` (2026-09-16).
 - **Data:** 19 poses, 27 transitions, 15 seed flows + user-created flows.
-- **Service-worker cache:** `acroflow-v5`. Bump the version in `sw.js` whenever
+- **Service-worker cache:** `acroflow-v6`. Bump the version in `sw.js` whenever
   `app.js` (or any cached asset) changes in a user-visible way.
 
 ## Publishing
